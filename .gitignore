@@ -8,7 +8,7 @@ artifacts/
 # Astro documentation site
 node_modules/
 .astro/
-docs/
+/docs/
 test-results/
 playwright-report/
 npm-debug.log*

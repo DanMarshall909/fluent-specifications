@@ -1,0 +1,52 @@
+---
+import DocLayout from '../../layouts/DocLayout.astro';
+
+interface DocumentationFrontmatter {
+  title: string;
+  description: string;
+  order: number;
+  section: string;
+}
+
+interface DocumentationModule {
+  Content: any;
+  frontmatter: DocumentationFrontmatter;
+  getHeadings(): Promise<Array<{ depth: number; slug: string; text: string }>>;
+}
+
+export async function getStaticPaths() {
+  const documentationModules = import.meta.glob<DocumentationModule>(
+    '../../content/docs/*.md',
+    { eager: true },
+  );
+  const entries = Object.entries(documentationModules).map(([path, module]) => ({
+    slug: path.split('/').at(-1)!.replace(/\.md$/, ''),
+    module,
+  }));
+  const navigation = entries.map(({ slug, module }) => ({
+    slug,
+    title: module.frontmatter.title,
+    order: module.frontmatter.order,
+  }));
+
+  return entries.map(({ slug, module }) => ({
+    params: { slug },
+    props: { slug, module, navigation },
+  }));
+}
+
+const { slug, module, navigation } = Astro.props;
+const { Content, frontmatter } = module;
+const headings = await module.getHeadings();
+---
+
+<DocLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+  section={frontmatter.section}
+  slug={slug}
+  headings={headings}
+  navigation={navigation}
+>
+  <Content />
+</DocLayout>

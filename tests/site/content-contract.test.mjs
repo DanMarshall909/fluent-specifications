@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -28,6 +29,27 @@ test('the documentation is authored as a complete Markdown collection', () => {
     assert.match(markdown, /^description:\s+.{70,}$/m);
     assert.match(markdown, /^order:\s+\d+$/m);
     assert.match(markdown, /^section:\s+.+$/m);
+  }
+});
+
+test('every required documentation source is tracked by Git', () => {
+  const trackedFiles = new Set(
+    execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' })
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map(path => path.replaceAll('\\', '/')),
+  );
+
+  const requiredTrackedFiles = [
+    ...requiredPages.map(page => `src/content/docs/${page}`),
+    'src/pages/docs/[...slug].astro',
+  ];
+
+  for (const path of requiredTrackedFiles) {
+    assert.ok(
+      trackedFiles.has(path),
+      `${path} must be committed so CI can build the site`,
+    );
   }
 });
 
