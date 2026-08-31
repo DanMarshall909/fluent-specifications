@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+TestResults/
+artifacts/
+*.user
+*.suo
+
+# Astro documentation site
+node_modules/
+.astro/
+docs/
+test-results/
+playwright-report/
+npm-debug.log*

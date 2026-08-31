@@ -1,0 +1,29 @@
+{
+  "name": "fluent-specifications-docs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "predev": "npm run snippets:sync",
+    "dev": "astro dev --port 3000",
+    "prebuild": "npm run snippets:sync",
+    "build": "astro build",
+    "preview": "astro preview",
+    "snippets:sync": "dotnet run --project tools/FluentSpecifications.Docs --configuration Release --no-restore -- sync",
+    "snippets:check": "dotnet run --project tools/FluentSpecifications.Docs --configuration Release --no-restore -- check",
+    "test:content": "npm run snippets:check && node --test tests/site/content-contract.test.mjs",
+    "test:site": "node --test tests/site/built-site.test.mjs",
+    "test": "npm run test:content && npm run build && npm run test:site"
+  },
+  "dependencies": {
+    "astro": "7.1.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

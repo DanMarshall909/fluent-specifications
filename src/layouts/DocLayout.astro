@@ -1,0 +1,88 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  title: string;
+  description: string;
+  section: string;
+  slug: string;
+  headings: Heading[];
+  navigation: Array<{
+    slug: string;
+    title: string;
+    order: number;
+  }>;
+}
+
+const { title, description, section, slug, headings, navigation } = Astro.props;
+const entries = navigation.sort((left, right) => left.order - right.order);
+const onThisPage = headings.filter((heading) => heading.depth === 2);
+const currentIndex = entries.findIndex((entry) => entry.slug === slug);
+const previous = currentIndex > 0 ? entries[currentIndex - 1] : undefined;
+const next = currentIndex < entries.length - 1 ? entries[currentIndex + 1] : undefined;
+---
+
+<BaseLayout title={title} description={description} activePath={`/docs/${slug}/`}>
+  <div class="site-shell docs-grid">
+    <aside class="docs-sidebar" aria-label="Documentation navigation">
+      <p class="sidebar-label">Documentation</p>
+      <nav>
+        <ol>
+          {entries.map((entry) => (
+            <li>
+              <a
+                class:list={[{ active: entry.slug === slug }]}
+                aria-current={entry.slug === slug ? 'page' : undefined}
+                href={`/docs/${entry.slug}/`}
+              >
+                {entry.title}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+    </aside>
+
+    <article class="doc-article">
+      <header class="doc-header">
+        <p class="eyebrow">{section}</p>
+        <h1>{title}</h1>
+        <p class="doc-lead">{description}</p>
+      </header>
+      <div class="prose">
+        <slot />
+      </div>
+      <nav class="doc-pagination" aria-label="Adjacent documentation">
+        {previous ? (
+          <a href={`/docs/${previous.slug}/`}>
+            <span>Previous</span>
+            <strong>{previous.title}</strong>
+          </a>
+        ) : <span />}
+        {next && (
+          <a class="next" href={`/docs/${next.slug}/`}>
+            <span>Next</span>
+            <strong>{next.title}</strong>
+          </a>
+        )}
+      </nav>
+    </article>
+
+    {onThisPage.length > 0 && (
+      <aside class="page-toc" aria-label="On this page">
+        <p class="sidebar-label">On this page</p>
+        <ol>
+          {onThisPage.map((heading) => (
+            <li><a href={`#${heading.slug}`}>{heading.text}</a></li>
+          ))}
+        </ol>
+      </aside>
+    )}
+  </div>
+</BaseLayout>

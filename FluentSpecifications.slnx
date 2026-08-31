@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FluentSpecifications.Core/FluentSpecifications.Core.csproj" />
+    <Project Path="src/FluentSpecifications.Expressions/FluentSpecifications.Expressions.csproj" />
+    <Project Path="src/FluentSpecifications.Generators/FluentSpecifications.Generators.csproj" />
+    <Project Path="src/FluentSpecifications.EntityFrameworkCore/FluentSpecifications.EntityFrameworkCore.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/OrderFulfilment/OrderFulfilment.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FluentSpecifications.Core.Tests/FluentSpecifications.Core.Tests.csproj" />
+    <Project Path="tests/FluentSpecifications.Generator.IntegrationTests/FluentSpecifications.Generator.IntegrationTests.csproj" />
+    <Project Path="tests/FluentSpecifications.Generators.Tests/FluentSpecifications.Generators.Tests.csproj" />
+    <Project Path="tests/FluentSpecifications.Expressions.Tests/FluentSpecifications.Expressions.Tests.csproj" />
+    <Project Path="tests/FluentSpecifications.EntityFrameworkCore.Tests/FluentSpecifications.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="tests/FluentSpecifications.Docs.Tests/FluentSpecifications.Docs.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/FluentSpecifications.Docs/FluentSpecifications.Docs.csproj" />
+  </Folder>
+</Solution>

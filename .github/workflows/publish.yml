@@ -1,0 +1,56 @@
+name: Publish documentation to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: fluent-spec-pages
+  cancel-in-progress: true
+
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Restore .NET tools and tests
+        run: dotnet restore FluentSpecifications.slnx
+
+      - name: Install site dependencies
+        run: npm ci
+
+      - name: Verify generated snippets
+        run: npm run snippets:check
+
+      - name: Run .NET Release tests
+        run: dotnet test FluentSpecifications.slnx --configuration Release --no-restore -m:1 -nr:false
+
+      - name: Build and test documentation site
+        run: npm test
+
+      - name: Publish under gh-pages:/docs
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          destination_dir: ./docs
+          force_orphan: true

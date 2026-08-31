@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>FluentSpecifications.EntityFrameworkCore</RootNamespace>
+    <AssemblyName>FluentSpecifications.EntityFrameworkCore</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../FluentSpecifications.Core/FluentSpecifications.Core.csproj" />
+    <ProjectReference Include="../FluentSpecifications.Expressions/FluentSpecifications.Expressions.csproj" />
+  </ItemGroup>
+</Project>

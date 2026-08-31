@@ -1,0 +1,65 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  activePath?: string;
+}
+
+const {
+  title,
+  description,
+  activePath = Astro.url.pathname,
+} = Astro.props;
+const siteName = 'Fluent Specifications';
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f7f5ef" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+      <div class="site-shell header-inner">
+        <a class="brand" href="/" aria-label="Fluent Specifications home">
+          <span class="brand-mark" aria-hidden="true">fs</span>
+          <span>Fluent Specifications</span>
+        </a>
+        <nav class="primary-nav" aria-label="Primary navigation">
+          <a class:list={[{ active: activePath.startsWith('/docs/') }]} href="/docs/getting-started/">Docs</a>
+          <a href="/docs/ef-core/">EF Core</a>
+          <a href="/docs/testing/">Tests</a>
+          <a href="https://github.com/DanMarshall909/fluent-specifications">GitHub</a>
+        </nav>
+      </div>
+    </header>
+    <main id="main-content">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="site-shell footer-inner">
+        <p>Business rules should sound like the business.</p>
+        <p>Designed by Dan Marshall.</p>
+      </div>
+    </footer>
+  </body>
+</html>
