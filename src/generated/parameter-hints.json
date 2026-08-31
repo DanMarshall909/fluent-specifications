@@ -1,0 +1,366 @@
+{
+  "M:FluentSpecifications.Core.Tests.CompositionTests.Matches_short_circuits_and_from_left_to_right": [
+    {
+      "offset": 128,
+      "name": "name"
+    },
+    {
+      "offset": 136,
+      "name": "predicate"
+    },
+    {
+      "offset": 170,
+      "name": "name"
+    },
+    {
+      "offset": 179,
+      "name": "predicate"
+    },
+    {
+      "offset": 197,
+      "name": "result"
+    },
+    {
+      "offset": 247,
+      "name": "candidate"
+    }
+  ],
+  "M:FluentSpecifications.Core.Tests.DiagnosticTests.Check_returns_a_structured_business_failure": [
+    {
+      "offset": 336,
+      "name": "candidate"
+    }
+  ],
+  "M:FluentSpecifications.Core.Tests.DiagnosticTests.Failed_or_keeps_its_alternatives_grouped": [
+    {
+      "offset": 84,
+      "name": "id"
+    },
+    {
+      "offset": 92,
+      "name": "name"
+    },
+    {
+      "offset": 100,
+      "name": "predicate"
+    },
+    {
+      "offset": 112,
+      "name": "failure"
+    },
+    {
+      "offset": 159,
+      "name": "id"
+    },
+    {
+      "offset": 169,
+      "name": "name"
+    },
+    {
+      "offset": 188,
+      "name": "predicate"
+    },
+    {
+      "offset": 200,
+      "name": "failure"
+    },
+    {
+      "offset": 252,
+      "name": "right"
+    },
+    {
+      "offset": 266,
+      "name": "candidate"
+    }
+  ],
+  "M:FluentSpecifications.Core.Tests.DiagnosticTests.Matches_wraps_a_leaf_exception_with_rule_identity_and_node_path": [
+    {
+      "offset": 135,
+      "name": "message"
+    },
+    {
+      "offset": 166,
+      "name": "id"
+    },
+    {
+      "offset": 176,
+      "name": "name"
+    },
+    {
+      "offset": 186,
+      "name": "predicate"
+    },
+    {
+      "offset": 212,
+      "name": "exception"
+    },
+    {
+      "offset": 321,
+      "name": "candidate"
+    }
+  ],
+  "M:FluentSpecifications.Core.Tests.FactoryAndAggregateTests.Empty_aggregates_follow_boolean_identity_laws": [
+    {
+      "offset": 96,
+      "name": "specifications"
+    },
+    {
+      "offset": 132,
+      "name": "candidate"
+    },
+    {
+      "offset": 175,
+      "name": "specifications"
+    },
+    {
+      "offset": 211,
+      "name": "candidate"
+    }
+  ],
+  "M:FluentSpecifications.Docs.Tests.SymbolSnippetTests.Extractor_uses_roslyn_documentation_ids_and_disambiguates_overloads": [
+    {
+      "offset": 562,
+      "name": "documents"
+    },
+    {
+      "offset": 591,
+      "name": "Path"
+    },
+    {
+      "offset": 603,
+      "name": "Content"
+    },
+    {
+      "offset": 693,
+      "name": "key"
+    },
+    {
+      "offset": 810,
+      "name": "key"
+    },
+    {
+      "offset": 951,
+      "name": "key"
+    },
+    {
+      "offset": 1118,
+      "name": "key"
+    }
+  ],
+  "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Null_inequality_has_matching_clr_and_default_ef_semantics": [
+    {
+      "offset": 198,
+      "name": "context"
+    },
+    {
+      "offset": 255,
+      "name": "blockedReference"
+    },
+    {
+      "offset": 331,
+      "name": "predicate"
+    },
+    {
+      "offset": 361,
+      "name": "selector"
+    },
+    {
+      "offset": 468,
+      "name": "specification"
+    },
+    {
+      "offset": 491,
+      "name": "selector"
+    }
+  ],
+  "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Provider_specific_scalar_limit_is_a_structured_translation_error": [
+    {
+      "offset": 205,
+      "name": "context"
+    },
+    {
+      "offset": 253,
+      "name": "cutoff"
+    },
+    {
+      "offset": 393,
+      "name": "specification"
+    }
+  ],
+  "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Public_ef_adapter_api_never_returns_or_accepts_iqueryable": [
+    {
+      "offset": 196,
+      "name": "selector"
+    },
+    {
+      "offset": 227,
+      "name": "predicate"
+    }
+  ],
+  "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Unsupported_filter_fails_before_any_select_is_executed": [
+    {
+      "offset": 232,
+      "name": "context"
+    },
+    {
+      "offset": 358,
+      "name": "expected"
+    },
+    {
+      "offset": 398,
+      "name": "candidate"
+    },
+    {
+      "offset": 535,
+      "name": "specification"
+    }
+  ],
+  "M:FluentSpecifications.Examples.OrderFulfilment.OrderRules.WorthAtLeast(System.Int32)": [
+    {
+      "offset": 92,
+      "name": "id"
+    },
+    {
+      "offset": 124,
+      "name": "name"
+    },
+    {
+      "offset": 150,
+      "name": "predicate"
+    }
+  ],
+  "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.ExplainWhyShippingIsBlocked(FluentSpecifications.Examples.OrderFulfilment.Order)": [
+    {
+      "offset": 88,
+      "name": "candidate"
+    }
+  ],
+  "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.FindReadyOrdersAsync(FluentSpecifications.Examples.OrderFulfilment.IOrderRepository,System.Threading.CancellationToken)": [
+    {
+      "offset": 184,
+      "name": "specification"
+    }
+  ],
+  "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.ReadyToShip": [],
+  "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.ShouldDispatch(FluentSpecifications.Examples.OrderFulfilment.Order)": [],
+  "M:FluentSpecifications.Expressions.Tests.ExpressionSpecTranslatorTests.Prepared_expression_preserves_nested_lambda_parameters": [
+    {
+      "offset": 117,
+      "name": "id"
+    },
+    {
+      "offset": 141,
+      "name": "predicate"
+    },
+    {
+      "offset": 165,
+      "name": "predicate"
+    },
+    {
+      "offset": 220,
+      "name": "id"
+    },
+    {
+      "offset": 228,
+      "name": "predicate"
+    },
+    {
+      "offset": 335,
+      "name": "specification"
+    },
+    {
+      "offset": 344,
+      "name": "right"
+    },
+    {
+      "offset": 457,
+      "name": "arg"
+    },
+    {
+      "offset": 555,
+      "name": "arg"
+    }
+  ],
+  "M:FluentSpecifications.Generator.IntegrationTests.GeneratedDslTests.Connector_invocation_supports_explicit_grouping": [
+    {
+      "offset": 161,
+      "name": "candidate"
+    },
+    {
+      "offset": 281,
+      "name": "candidate"
+    }
+  ],
+  "M:FluentSpecifications.Generator.IntegrationTests.GeneratedDslTests.Parameterized_rules_keep_parentheses_only_for_arguments": [],
+  "M:FluentSpecifications.Generator.IntegrationTests.GeneratedDslTests.Params_overloads_and_keyword_parameter_names_survive_generation": [],
+  "M:FluentSpecifications.Generator.IntegrationTests.GeneratedDslTests.Zero_argument_rules_compose_without_parentheses": [],
+  "M:FluentSpecifications.Generators.Tests.GeneratorDiagnosticTests.Unsupported_rule_shapes_are_reported_instead_of_silently_disappearing": [
+    {
+      "offset": 1008,
+      "name": "predicate"
+    }
+  ],
+  "P:FluentSpecifications.Examples.OrderFulfilment.OrderRules.CanShip": [
+    {
+      "offset": 68,
+      "name": "right"
+    },
+    {
+      "offset": 104,
+      "name": "right"
+    },
+    {
+      "offset": 143,
+      "name": "id"
+    },
+    {
+      "offset": 173,
+      "name": "name"
+    },
+    {
+      "offset": 197,
+      "name": "failure"
+    }
+  ],
+  "P:FluentSpecifications.Examples.OrderFulfilment.OrderRules.Paid": [
+    {
+      "offset": 57,
+      "name": "id"
+    },
+    {
+      "offset": 71,
+      "name": "name"
+    },
+    {
+      "offset": 79,
+      "name": "predicate"
+    }
+  ],
+  "T:FluentSpecifications.Examples.OrderFulfilment.IOrderRepository": [],
+  "T:FluentSpecifications.Examples.OrderFulfilment.QuickStartRules": [
+    {
+      "offset": 180,
+      "name": "id"
+    },
+    {
+      "offset": 206,
+      "name": "name"
+    },
+    {
+      "offset": 226,
+      "name": "predicate"
+    },
+    {
+      "offset": 351,
+      "name": "id"
+    },
+    {
+      "offset": 381,
+      "name": "name"
+    },
+    {
+      "offset": 405,
+      "name": "predicate"
+    }
+  ]
+}

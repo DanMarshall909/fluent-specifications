@@ -14,6 +14,7 @@ const requiredPages = [
   'ef-core.md',
   'testing.md',
   'reference.md',
+  'prior-art.md',
 ];
 
 function read(relativePath) {
@@ -92,7 +93,40 @@ test('custom-domain and deployment configuration follow the blog convention', ()
   assert.match(workflow, /dotnet test/);
   assert.match(workflow, /npm ci/);
   assert.match(workflow, /npm test/);
+  assert.match(workflow, /dotnet pack/);
+  assert.match(workflow, /actions\/upload-artifact@v4/);
   assert.match(workflow, /peaceiris\/actions-gh-pages@v4/);
   assert.match(workflow, /destination_dir:\s*\.\/docs/);
   assert.match(workflow, /force_orphan:\s*true/);
+});
+
+test('NuGet publication starts at 1.0.0, increments patches, and is credential-gated', () => {
+  const workflow = read('.github/workflows/publish-nuget.yml');
+
+  assert.match(workflow, /push:\s*\r?\n\s+branches:\s*\[main\]/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /if:\s*vars\.NUGET_PUBLISH_ENABLED == 'true'/);
+  assert.match(workflow, /NUGET_API_KEY:\s*\$\{\{ secrets\.NUGET_API_KEY \}\}/);
+  assert.match(workflow, /VERSION_PREFIX:\s*'1\.0'/);
+  assert.match(workflow, /BASE_COMMIT_COUNT:\s*3/);
+  assert.match(workflow, /git rev-list --first-parent --count HEAD/);
+  assert.match(workflow, /-p:PackageVersion=\$\{\{ steps\.package-version\.outputs\.version \}\}/);
+  assert.match(workflow, /https:\/\/api\.nuget\.org\/v3\/index\.json/);
+  assert.match(workflow, /--skip-duplicate/);
+  assert.doesNotMatch(workflow, /--api-key/);
+});
+
+test('the homepage and documentation shell have deliberate responsive fallbacks', () => {
+  const css = read('src/styles/global.css');
+
+  assert.match(css, /body\s*{[^}]*min-width:\s*0;/s);
+  assert.match(
+    css,
+    /@media \(max-width:\s*62rem\)[\s\S]*?\.hero-grid,[\s\S]*?\.boundary-grid\s*{\s*grid-template-columns:\s*1fr;/,
+  );
+  assert.match(
+    css,
+    /@media \(max-width:\s*48rem\)[\s\S]*?\.docs-sidebar\s*{[^}]*overflow-x:\s*auto;/,
+  );
+  assert.match(css, /\.doc-article,[\s\S]*?\.prose\s*{\s*min-width:\s*0;/);
 });

@@ -42,9 +42,9 @@ The first version deliberately does not overload Boolean operators and does not
 implicitly convert between specifications, expressions, delegates, or Boolean
 values.
 
-## Package responsibilities
+## Project responsibilities
 
-| Package | Owns | Must not own |
+| Project | Owns | Must not own |
 | --- | --- | --- |
 | `FluentSpecifications.Core` | Rule tree, evaluation, diagnostics, traversal contracts | EF or query-provider types |
 | `FluentSpecifications.Generators` | Catalog discovery and C# 14 extension members | Runtime query execution |
@@ -53,6 +53,18 @@ values.
 | `FluentSpecifications.Docs` | Roslyn symbol extraction and Markdown synchronization | Business-rule execution |
 
 Dependencies point inward. Core has no reference to a provider adapter.
+
+## NuGet package
+
+The 1.x line is packaged as `DanMarshall.FluentSpecifications`, beginning at
+1.0.0. Each push to `main` receives the next patch version. The package combines
+the core runtime with the source generator so the normal install is one package
+reference. Its NuGet dependency list is empty: there are **zero third-party
+package dependencies**, and no Microsoft runtime or compiler DLLs are bundled.
+The package uses only the .NET and Roslyn platform supplied by Microsoft.
+
+The expression and EF Core projects remain separate infrastructure adapters;
+they are not transitive dependencies of the starter package.
 
 ## Failure types
 
@@ -92,7 +104,6 @@ combined with Boolean algebra without surprising behavior.
 
 ## Current status
 
-The repository is an implemented draft targeting C# 14 and .NET 10. Packaging
-and NuGet publication are still pending. Treat the checked-in specification and
-executable tests as the version-one contract while the package surface is being
-prepared.
+The repository targets C# 14 and .NET 10. `DanMarshall.FluentSpecifications`
+1.0.0 is the version-one starter package; the checked-in specification and
+executable tests define its behavioral contract.

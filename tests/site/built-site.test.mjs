@@ -41,6 +41,21 @@ test('the build emits the custom-domain files expected by GitHub Pages', () => {
   assert.ok(existsSync(join(outputRoot, '.nojekyll')));
 });
 
+test('C# examples render subtle generated parameter hints', () => {
+  const html = readFileSync(
+    join(outputRoot, 'docs', 'getting-started', 'index.html'),
+    'utf8',
+  );
+
+  assert.match(html, /data-parameter-hint="id:"/);
+  assert.match(html, /data-parameter-hint="predicate:"/);
+  assert.match(
+    html,
+    /<span class="parameter-hint" data-parameter-hint="[^"]+" aria-hidden="true"><\/span>/,
+    'parameter labels must be empty decorations rather than changes to source text',
+  );
+});
+
 test('every generated page has production metadata and valid internal links', () => {
   const pages = findFiles(outputRoot, 'index.html');
   assert.ok(pages.length >= 8, `expected at least 8 pages, received ${pages.length}`);

@@ -32,7 +32,7 @@ internal static class DocumentationCli
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal)
                 .ToArray();
-            var allSnippets = new SymbolSnippetExtractor().Extract(ReadSources(root));
+            var allSnippets = new SymbolSnippetExtractor().ExtractDetailed(ReadSources(root));
             if (mode == "list")
             {
                 var filter = args.ElementAtOrDefault(1);
@@ -48,12 +48,16 @@ internal static class DocumentationCli
                 return 0;
             }
 
-            var requestedSnippets = requestedSymbols.ToDictionary(
+            var requestedDetails = requestedSymbols.ToDictionary(
                 symbol => symbol,
                 symbol => allSnippets.TryGetValue(symbol, out var snippet)
                     ? snippet
                     : throw new SnippetSynchronizationException(
                         $"No C# declaration was found for requested symbol '{symbol}'."),
+                StringComparer.Ordinal);
+            var requestedSnippets = requestedDetails.ToDictionary(
+                static pair => pair.Key,
+                static pair => pair.Value.Code,
                 StringComparer.Ordinal);
 
             var staleFiles = new List<string>();
@@ -93,6 +97,43 @@ internal static class DocumentationCli
                 else
                 {
                     staleFiles.Add(Path.GetRelativePath(root, generatedPath));
+                }
+            }
+
+            var parameterHintsPath = Path.Combine(
+                root,
+                "src",
+                "generated",
+                "parameter-hints.json");
+            var parameterHints = requestedDetails.ToDictionary(
+                static pair => pair.Key,
+                static pair => pair.Value.ParameterHints,
+                StringComparer.Ordinal);
+            var parameterHintsJson = JsonSerializer.Serialize(
+                parameterHints,
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                }) + Environment.NewLine;
+            var existingParameterHintsJson = File.Exists(parameterHintsPath)
+                ? await File.ReadAllTextAsync(parameterHintsPath).ConfigureAwait(false)
+                : null;
+            if (!string.Equals(
+                existingParameterHintsJson,
+                parameterHintsJson,
+                StringComparison.Ordinal))
+            {
+                if (mode == "sync")
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(parameterHintsPath)!);
+                    await File.WriteAllTextAsync(
+                        parameterHintsPath,
+                        parameterHintsJson).ConfigureAwait(false);
+                }
+                else
+                {
+                    staleFiles.Add(Path.GetRelativePath(root, parameterHintsPath));
                 }
             }
 

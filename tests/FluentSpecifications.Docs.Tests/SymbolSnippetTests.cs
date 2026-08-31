@@ -87,4 +87,98 @@ public sealed class SymbolSnippetTests
 
         Assert.Contains("M:Examples.Rules.Missing", exception.Message);
     }
+
+    [Fact]
+    public void Extractor_adds_parameter_hints_for_positional_arguments()
+    {
+        const string source = """
+            namespace Examples;
+
+            public static class Examples
+            {
+                public static bool Between(int value, int minimum, int maximum) =>
+                    value >= minimum && value <= maximum;
+
+                public static bool IsUseful() => Between(42, 10, 100);
+            }
+            """;
+        var extractor = new SymbolSnippetExtractor();
+
+        var snippet = extractor.ExtractDetailed(
+        [
+            new SourceDocument("Examples.cs", source)
+        ])["M:Examples.Examples.IsUseful"];
+
+        Assert.Equal("public static bool IsUseful() => Between(42, 10, 100);", snippet.Code);
+        Assert.Collection(
+            snippet.ParameterHints,
+            hint => AssertHint(snippet.Code, hint, "value", "42"),
+            hint => AssertHint(snippet.Code, hint, "minimum", "10"),
+            hint => AssertHint(snippet.Code, hint, "maximum", "100"));
+    }
+
+    [Fact]
+    public void Extractor_omits_hints_that_would_repeat_named_or_matching_arguments()
+    {
+        const string source = """
+            namespace Examples;
+
+            public static class Examples
+            {
+                public static bool Between(int value, int minimum, int maximum) => true;
+
+                public static bool Forward(int value) =>
+                    Between(value, minimum: 10, 100);
+            }
+            """;
+        var extractor = new SymbolSnippetExtractor();
+
+        var snippet = extractor.ExtractDetailed(
+        [
+            new SourceDocument("Examples.cs", source)
+        ])["M:Examples.Examples.Forward(System.Int32)"];
+
+        var hint = Assert.Single(snippet.ParameterHints);
+        AssertHint(snippet.Code, hint, "maximum", "100");
+    }
+
+    [Fact]
+    public void Extractor_uses_the_resolved_overload_and_hints_a_params_parameter_once()
+    {
+        const string source = """
+            namespace Examples;
+
+            public static class Examples
+            {
+                public static string Format(string message) => message;
+                public static string Format(int code) => code.ToString();
+                public static string Join(string separator, params string[] values) => "";
+
+                public static string Render() =>
+                    Format(404) + Join(", ", "first", "second");
+            }
+            """;
+        var extractor = new SymbolSnippetExtractor();
+
+        var snippet = extractor.ExtractDetailed(
+        [
+            new SourceDocument("Examples.cs", source)
+        ])["M:Examples.Examples.Render"];
+
+        Assert.Collection(
+            snippet.ParameterHints,
+            hint => AssertHint(snippet.Code, hint, "code", "404"),
+            hint => AssertHint(snippet.Code, hint, "separator", "\", \""),
+            hint => AssertHint(snippet.Code, hint, "values", "\"first\""));
+    }
+
+    private static void AssertHint(
+        string code,
+        ParameterHint hint,
+        string expectedName,
+        string expectedArgument)
+    {
+        Assert.Equal(expectedName, hint.Name);
+        Assert.StartsWith(expectedArgument, code[hint.Offset..], StringComparison.Ordinal);
+    }
 }

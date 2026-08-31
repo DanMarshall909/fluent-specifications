@@ -11,6 +11,10 @@ concurrency:
   group: fluent-spec-pages
   cancel-in-progress: true
 
+env:
+  VERSION_PREFIX: '1.0'
+  BASE_COMMIT_COUNT: 3
+
 jobs:
   verify-and-deploy:
     runs-on: ubuntu-latest
@@ -42,6 +46,30 @@ jobs:
 
       - name: Run .NET Release tests
         run: dotnet test FluentSpecifications.slnx --configuration Release --no-restore -m:1 -nr:false
+
+      - name: Calculate the semantic package version
+        id: package-version
+        shell: bash
+        run: |
+          commit_count=$(git rev-list --first-parent --count HEAD)
+          patch=$((commit_count - BASE_COMMIT_COUNT))
+          if [ "$patch" -lt 0 ]; then
+            echo "::error::Git history predates the configured package version baseline."
+            exit 1
+          fi
+          echo "version=${VERSION_PREFIX}.${patch}" >> "$GITHUB_OUTPUT"
+
+      - name: Pack the public NuGet artifacts
+        run: dotnet pack src/FluentSpecifications.Core/FluentSpecifications.Core.csproj --configuration Release --no-restore --output artifacts/packages -p:PackageVersion=${{ steps.package-version.outputs.version }}
+
+      - name: Retain the verified NuGet artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DanMarshall.FluentSpecifications-${{ steps.package-version.outputs.version }}
+          path: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg
+          if-no-files-found: error
 
       - name: Build and test documentation site
         run: npm test

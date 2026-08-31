@@ -1,11 +1,30 @@
 # Fluent Specifications
 
+**Specifications for modern C#.**
+
 Fluent Specifications is a C# 14 implementation of the Specification Pattern
 designed around terse domain language, structured explanations, and repository
 boundaries that do not leak `IQueryable`.
 
 Read the polished documentation at
 [fluent-spec.danmarshall.dev](https://fluent-spec.danmarshall.dev).
+
+## Install
+
+```shell
+dotnet add package DanMarshall.FluentSpecifications
+```
+
+One package installs both the `Spec<T>` runtime and the source generator that
+produces fluent connectors such as `.And.Paid` and opt-in domain properties
+such as `order.CanShip`.
+
+### Zero third-party package dependencies
+
+The package has **zero third-party package dependencies**. Its NuGet dependency
+list is empty: the runtime uses the .NET platform, and the generator uses the
+Roslyn compiler APIs supplied by Microsoft's C# toolchain. It neither downloads
+nor bundles another vendor's runtime or compiler assemblies.
 
 ## Readable at the call site
 
@@ -96,6 +115,34 @@ and the limits of SQLite-based testing.
 - `FluentSpecifications.Docs` — Roslyn-based extraction of real source symbols
   into Markdown and the Astro landing page.
 
+## Prior art and acknowledgements
+
+Fluent Specifications is informed by the original Specification pattern and by
+practical lessons from several libraries and policy systems:
+
+- [Ardalis.Specification](https://github.com/ardalis/Specification), created by
+  Steve Smith, demonstrated reusable named specifications and small repository
+  surfaces;
+- [Spring Data JPA Specifications](https://docs.spring.io/spring-data/jpa/reference/jpa/specifications.html)
+  keeps criteria separate from repository execution;
+- [RulerZ](https://github.com/K-Phoen/rulerz) demonstrates a provider-neutral
+  rule model compiled for different targets;
+- [Happyr Doctrine Specification](https://github.com/Happyr/Doctrine-Specification)
+  illustrates both repository-owned application and the tension created when
+  Boolean rules also carry query modifiers;
+- [Konform](https://github.com/konform-kt/konform),
+  [NSpecifications](https://github.com/miholler/NSpecifications), and
+  [spec-pattern](https://github.com/thiagodp/spec-pattern) informed structured
+  results, expression composition, and explicit composite trees;
+- [Cedar](https://github.com/cedar-policy/cedar) and
+  [Open Policy Agent](https://github.com/open-policy-agent/opa) informed stable
+  rule identity, explicit errors, preparation, and traceability; and
+- an internal Kotlin implementation Dan used while working at Reapit showed
+  how much terse, fluent domain language matters at ordinary call sites.
+
+These are influences, not compatibility targets. Fluent Specifications keeps a
+deliberately narrower Boolean core and does not copy their APIs.
+
 ## Documentation that cannot drift quietly
 
 Every fenced C# sample in the documentation carries a canonical Roslyn
@@ -118,6 +165,7 @@ Run the complete .NET suite with `dotnet test FluentSpecifications.slnx
 snippet freshness, Markdown contracts, the production Astro build, metadata,
 custom-domain artifacts, and internal links.
 
-NuGet packaging and publication are not yet complete. The checked-in
-[SPECIFICATION.md](SPECIFICATION.md) and executable tests are the current
-version-one contract.
+`DanMarshall.FluentSpecifications` 1.x is the public starter package. Releases
+begin at 1.0.0, and each push to `main` receives the next patch version. The
+checked-in [SPECIFICATION.md](SPECIFICATION.md), package-consumer tests, and
+executable conformance suites define its version-one contract.

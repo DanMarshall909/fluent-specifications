@@ -8,15 +8,54 @@ section: Start here
 Fluent Specifications is built around one idea: a business rule should be easy
 to name, combine, run, and explain without becoming a query object.
 
+## Install
+
+Install the .NET 10 SDK, open a terminal in the directory containing your
+project file, and run:
+
+```shell
+dotnet add package DanMarshall.FluentSpecifications
+```
+
+That adds the latest stable `DanMarshall.FluentSpecifications` release to the
+project. Pin `--version 1.0.0` when you specifically need the initial release.
+If you edit project files directly, the equivalent is a `PackageReference`
+with that ID and version. Add `using FluentSpecifications;` (or a global
+using), then create a `public static partial` rule catalog marked with
+`[SpecificationSet<T>]` as shown below. The first build runs the included source
+generator automatically.
+
+The package contains both the runtime and source generator and has **zero
+third-party package dependencies**. It relies only on .NET and compiler APIs
+supplied by Microsoft, and it does not bundle vendor runtime or compiler
+assemblies.
+
 ## The smallest useful example
 
 Create a static partial catalog for the domain type. A rule has a stable ID, a
 human name, and a typed predicate:
 
-```csharp symbol="P:FluentSpecifications.Examples.OrderFulfilment.OrderRules.Paid"
-public static Spec<Order> Paid =>
-    Spec.Define<Order>("order.paid", "Paid", order => order.Paid);
+```csharp symbol="T:FluentSpecifications.Examples.OrderFulfilment.QuickStartRules"
+[SpecificationSet<QuickStartOrder>]
+public static partial class QuickStartRules
+{
+    public static Spec<QuickStartOrder> Paid =>
+        Spec.Define<QuickStartOrder>(
+            "order.paid",
+            "Paid",
+            order => order.Paid);
+
+    public static Spec<QuickStartOrder> Priority =>
+        Spec.Define<QuickStartOrder>(
+            "order.priority",
+            "Priority",
+            order => order.Priority);
+}
 ```
+
+The faint parameter labels shown in documentation examples are generated from
+the same Roslyn model that extracts the source. They are visual aids, like
+Rider inlay hints; they are not part of the copied C#.
 
 Import the catalog once, then compose rules without operator overloads:
 
@@ -62,24 +101,21 @@ public static bool ShouldDispatch(Order order)
 `[Expose]` is opt-in. It is best for important, argument-free domain concepts,
 not every small leaf rule.
 
-## Project shape
+## What the package contains
 
-The repository currently contains project packages rather than published NuGet
-artifacts:
+`DanMarshall.FluentSpecifications` contains the immutable rule tree,
+evaluation and diagnostic APIs, plus the source generator that creates the
+fluent connector members. The generator runs as a compiler analyzer and is not
+a runtime dependency.
 
-- `FluentSpecifications.Core` owns the immutable rule tree and evaluation.
-- `FluentSpecifications.Generators` creates the fluent connector members.
-- `FluentSpecifications.Expressions` prepares provider-neutral expressions.
-- `FluentSpecifications.EntityFrameworkCore` translates and materializes
-  relational EF Core queries inside infrastructure.
-
-The generator is referenced as an analyzer project today. Published package
-references are intentionally deferred until the API and package split are
-ready to version together.
+Provider translation remains deliberately separate. The repository contains
+expression and EF Core adapters, but the starter package does not pull EF Core
+or expose `IQueryable` to application code.
 
 ## Where to go next
 
 Read [defining rules](/docs/defining-rules/) for naming and catalog design, then
 [composition](/docs/composition/) for grouping, negation, and parameterized
 rules. If the rules will reach a database, read the [EF Core guide](/docs/ef-core/)
-before assuming an in-memory match will translate.
+before assuming an in-memory match will translate. The [prior-art notes](/docs/prior-art/)
+explain the design lineage and where Fluent Specifications deliberately differs.

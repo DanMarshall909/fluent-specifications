@@ -1,0 +1,64 @@
+name: Publish NuGet package
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publish-nuget-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  VERSION_PREFIX: '1.0'
+  BASE_COMMIT_COUNT: 3
+
+jobs:
+  publish:
+    if: vars.NUGET_PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: nuget.org
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore FluentSpecifications.slnx
+
+      - name: Verify the release
+        run: dotnet test FluentSpecifications.slnx --configuration Release --no-restore -m:1 -nr:false
+
+      - name: Calculate the next patch version
+        id: package-version
+        shell: bash
+        run: |
+          commit_count=$(git rev-list --first-parent --count HEAD)
+          patch=$((commit_count - BASE_COMMIT_COUNT))
+          if [ "$patch" -lt 0 ]; then
+            echo "::error::Git history predates the configured package version baseline."
+            exit 1
+          fi
+          echo "version=${VERSION_PREFIX}.${patch}" >> "$GITHUB_OUTPUT"
+
+      - name: Pack ${{ steps.package-version.outputs.version }}
+        run: dotnet pack src/FluentSpecifications.Core/FluentSpecifications.Core.csproj --configuration Release --no-restore --output artifacts/packages -p:PackageVersion=${{ steps.package-version.outputs.version }}
+
+      - name: Publish ${{ steps.package-version.outputs.version }} to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_SYMBOL_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::The nuget.org environment needs a NUGET_API_KEY secret."
+            exit 1
+          fi
+          dotnet nuget push artifacts/packages/DanMarshall.FluentSpecifications.${{ steps.package-version.outputs.version }}.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push artifacts/packages/DanMarshall.FluentSpecifications.${{ steps.package-version.outputs.version }}.snupkg --source https://api.nuget.org/v3/index.json --skip-duplicate

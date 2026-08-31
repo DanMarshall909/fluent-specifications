@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import { parameterHintTransformer } from './tools/parameter-hint-transformer.mjs';
 
 export default defineConfig({
   site: 'https://fluent-spec.danmarshall.dev',
@@ -10,6 +11,7 @@ export default defineConfig({
   markdown: {
     shikiConfig: {
       theme: 'github-dark',
+      transformers: [parameterHintTransformer()],
     },
   },
 });

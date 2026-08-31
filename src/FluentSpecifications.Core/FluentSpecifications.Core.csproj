@@ -3,5 +3,37 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>FluentSpecifications</RootNamespace>
     <AssemblyName>FluentSpecifications.Core</AssemblyName>
+    <IsPackable>true</IsPackable>
+    <PackageId>DanMarshall.FluentSpecifications</PackageId>
+    <Version>1.0.0</Version>
+    <Title>Fluent Specifications</Title>
+    <Authors>Dan Marshall</Authors>
+    <Description>Specifications for modern C#: terse domain language, structured diagnostics, generated composition, and zero third-party package dependencies.</Description>
+    <PackageTags>specification;specification-pattern;domain-driven-design;ddd;fluent;source-generator;csharp</PackageTags>
+    <PackageProjectUrl>https://fluent-spec.danmarshall.dev</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DanMarshall909/fluent-specifications</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Stable release of the core specification runtime and fluent source generator. See the project documentation for behavior and compatibility notes.</PackageReleaseNotes>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../FluentSpecifications.Generators/FluentSpecifications.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../FluentSpecifications.Generators/bin/$(Configuration)/netstandard2.0/FluentSpecifications.Generators.dll"
+          Pack="true"
+          PackagePath="analyzers/dotnet/cs" />
+  </ItemGroup>
 </Project>
