@@ -56,26 +56,59 @@ public sealed class SymbolSnippetExtractor
                     continue;
                 }
 
-                var snippetNode = SnippetNode(declaration);
-                var snippetText = Dedent(snippetNode.ToFullString());
-                var snippet = new ExtractedSnippet(
-                    snippetText.Code,
-                    ParameterHints(semanticModel, snippetNode, snippetText));
-                if (!snippets.TryAdd(documentationId, snippet) &&
-                    (!string.Equals(
-                        snippets[documentationId].Code,
-                        snippet.Code,
-                        StringComparison.Ordinal) ||
-                    !snippets[documentationId].ParameterHints.SequenceEqual(
-                        snippet.ParameterHints)))
+                AddSnippet(
+                    snippets,
+                    documentationId,
+                    semanticModel,
+                    SnippetNode(declaration));
+
+                if (declaration is MethodDeclarationSyntax method)
                 {
-                    throw new SnippetSynchronizationException(
-                        $"Symbol '{documentationId}' has multiple source declarations.");
+                    var locals = method.DescendantNodes()
+                        .OfType<LocalDeclarationStatementSyntax>()
+                        .Where(static local => local.Declaration.Variables.Count == 1)
+                        .GroupBy(
+                            static local => local.Declaration.Variables[0].Identifier.ValueText,
+                            StringComparer.Ordinal)
+                        .Where(static group => group.Count() == 1)
+                        .Select(static group => group.Single());
+                    foreach (var local in locals)
+                    {
+                        var localName = local.Declaration.Variables[0].Identifier.ValueText;
+                        AddSnippet(
+                            snippets,
+                            $"{documentationId}|local:{localName}",
+                            semanticModel,
+                            local);
+                    }
                 }
             }
         }
 
         return snippets;
+    }
+
+    private static void AddSnippet(
+        IDictionary<string, ExtractedSnippet> snippets,
+        string symbolicName,
+        SemanticModel semanticModel,
+        SyntaxNode snippetNode)
+    {
+        var snippetText = Dedent(snippetNode.ToFullString());
+        var snippet = new ExtractedSnippet(
+            snippetText.Code,
+            ParameterHints(semanticModel, snippetNode, snippetText));
+        if (!snippets.TryAdd(symbolicName, snippet) &&
+            (!string.Equals(
+                snippets[symbolicName].Code,
+                snippet.Code,
+                StringComparison.Ordinal) ||
+            !snippets[symbolicName].ParameterHints.SequenceEqual(
+                snippet.ParameterHints)))
+        {
+            throw new SnippetSynchronizationException(
+                $"Symbolic snippet '{symbolicName}' has multiple source declarations.");
+        }
     }
 
     private static IEnumerable<SyntaxNode> Declarations(SyntaxNode root) =>
@@ -149,12 +182,43 @@ public sealed class SymbolSnippetExtractor
         }
 
         if (argument.Parent is not BaseArgumentListSyntax argumentList ||
-            semanticModel.GetSymbolInfo(argumentList.Parent!).Symbol is not IMethodSymbol method)
+            argumentList.Parent is not InvocationExpressionSyntax invocation)
         {
             return null;
         }
 
         var index = argumentList.Arguments.IndexOf(argument);
+        if (semanticModel.GetSymbolInfo(invocation).Symbol is IMethodSymbol method)
+        {
+            return ParameterAt(method, index);
+        }
+
+        var methodName = invocation.Expression switch
+        {
+            MemberAccessExpressionSyntax member => member.Name.Identifier.ValueText,
+            IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
+            _ => null
+        };
+        if (methodName is null)
+        {
+            return null;
+        }
+
+        var candidates = semanticModel.Compilation
+            .GetSymbolsWithName(methodName, SymbolFilter.Member)
+            .OfType<IMethodSymbol>()
+            .Select(candidate => ParameterAt(candidate, index))
+            .Where(static parameter => parameter is not null)
+            .Cast<IParameterSymbol>()
+            .GroupBy(static parameter => parameter.Name, StringComparer.Ordinal)
+            .ToArray();
+        return candidates.Length == 1
+            ? candidates[0].First()
+            : null;
+    }
+
+    private static IParameterSymbol? ParameterAt(IMethodSymbol method, int index)
+    {
         if (index < method.Parameters.Length)
         {
             return method.Parameters[index];

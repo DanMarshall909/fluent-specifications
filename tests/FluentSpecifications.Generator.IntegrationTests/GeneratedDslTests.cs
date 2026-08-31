@@ -98,6 +98,68 @@ public sealed class GeneratedDslTests
 
         Assert.True(rule.Matches(order));
     }
+
+    [Fact]
+    public void Search_rules_and_fields_are_inferred_from_the_entity()
+    {
+        var request = Order.Search
+            .Matching.CanShip.And.HighPriority
+            .Sorted.By.CreatedAt.Desc
+            .Then.By.Id.Asc
+            .Page(2).OfSize(50);
+
+        Assert.Equal("Can ship AND High priority", request.Specification.ToString());
+        Assert.Equal("CreatedAt", request.Ordering[0].Field.Name);
+        Assert.Equal(SearchSortDirection.Descending, request.Ordering[0].Direction);
+        Assert.Equal("Id", request.Ordering[1].Field.Name);
+        Assert.Equal(SearchSortDirection.Ascending, request.Ordering[1].Direction);
+        Assert.Equal(2, request.Paging!.Number);
+        Assert.Equal(50, request.Paging.Size);
+    }
+
+    [Fact]
+    public void Explicit_rule_and_field_catalogs_are_available_without_partial_entities()
+    {
+        var rule = Order.Rules.CanShip.And.HighPriority;
+        var request = Order.Search
+            .For(rule)
+            .Sorted.By[Order.Fields.CreatedAt].Desc
+            .Then.By[Order.Fields.Id].Asc;
+
+        Assert.True(rule.Matches(new Order(Paid: true, HasAddress: true, HighPriority: true)));
+        Assert.Equal(["CreatedAt", "Id"], request.Ordering.Select(item => item.Field.Name));
+    }
+
+    [Fact]
+    public void Search_all_is_an_explicit_unfiltered_start()
+    {
+        var request = Order.Search.All.Sorted.By.Id.Asc;
+
+        Assert.True(request.Specification.Matches(new Order()));
+    }
+
+    [Fact]
+    public void Inherited_readable_fields_are_available_to_search_ordering()
+    {
+        var request = Order.Search.All.Sorted.By.TenantId.Asc;
+
+        Assert.Equal("TenantId", request.Ordering[0].Field.Name);
+    }
+
+    [Fact]
+    public void Fields_named_like_the_dynamic_selector_are_available_to_search_ordering()
+    {
+        var shorthand = Order.Search.All.Sorted.By.Field.Asc;
+        var dynamic = Order.Search.All.Sorted.By[Order.Fields.Field].Desc;
+
+        Assert.Equal("Field", shorthand.Ordering[0].Field.Name);
+        Assert.Equal("Field", dynamic.Ordering[0].Field.Name);
+    }
+}
+
+public abstract record Entity
+{
+    public int TenantId { get; init; }
 }
 
 public sealed record Order(
@@ -107,9 +169,12 @@ public sealed record Order(
     bool Suspended = false,
     bool ManualOverride = false,
     decimal Total = 0m,
-    string Region = "AU");
+    string Region = "AU",
+    int Id = 0,
+    DateTime CreatedAt = default,
+    int Field = 0) : Entity;
 
-[SpecificationSet<Order>]
+[SpecificationSet<Order>(GenerateSearch = true)]
 public static partial class OrderRules
 {
     private static int _countedAccessCount;

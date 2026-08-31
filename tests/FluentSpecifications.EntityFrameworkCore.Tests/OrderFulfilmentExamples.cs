@@ -234,6 +234,167 @@ public sealed class OrderFulfilmentExamples
     }
 
     [Fact]
+    public async Task Fluent_search_filters_sorts_and_returns_page_metadata()
+    {
+        await using var database = await ExampleDatabase.CreateAsync();
+        var repository = new EfOrderRepository(database.Context);
+        var request = Order.Search
+            .Matching.Paid
+            .Sorted.By.CreatedAt.Desc
+            .Then.By.Id.Asc
+            .Page(2).OfSize(1);
+
+        var page = await repository.FindAsync(request);
+
+        Assert.Equal([2], page.Results.Select(order => order.Id));
+        Assert.Equal(2, page.Number);
+        Assert.Equal(1, page.Size);
+        Assert.Equal(3, page.TotalResults);
+        Assert.Equal(3, page.TotalPages);
+    }
+
+    [Fact]
+    public async Task Then_preserves_primary_order_and_stabilizes_ties()
+    {
+        await using var database = await ExampleDatabase.CreateAsync();
+        var executor = new RelationalSpecExecutor<Order>(database.Context);
+        var request = Order.Search
+            .Matching.Paid
+            .Sorted.By.HighPriority.Desc
+            .Then.By.Id.Asc;
+
+        var results = await executor.ListAsync(request);
+
+        Assert.Equal([1, 3, 2], results.Select(order => order.Id));
+    }
+
+    [Fact]
+    public async Task A_page_beyond_the_end_is_empty_but_keeps_total_metadata()
+    {
+        await using var database = await ExampleDatabase.CreateAsync();
+        var executor = new RelationalSpecExecutor<Order>(database.Context);
+        var request = Order.Search
+            .Matching.Paid
+            .Sorted.By.Id.Asc
+            .Page(5).OfSize(2);
+
+        var page = await executor.PageAsync(request);
+
+        Assert.Empty(page.Results);
+        Assert.Equal(3, page.TotalResults);
+        Assert.Equal(2, page.TotalPages);
+        Assert.Equal(5, page.Number);
+    }
+
+    [Fact]
+    public async Task An_empty_page_counts_once_and_skips_the_page_query()
+    {
+        await using var database = await ExampleDatabase.CreateAsync();
+        database.CommandCounter.Reset();
+        var executor = new RelationalSpecExecutor<Order>(database.Context);
+        var request = Search.Matching(Spec.Never<Order>())
+            .Sorted.By[Order.Fields.Id].Asc
+            .Page(1).OfSize(10);
+
+        var page = await executor.PageAsync(request);
+
+        Assert.Empty(page.Results);
+        Assert.Equal(0, page.TotalResults);
+        Assert.Equal(0, page.TotalPages);
+        Assert.Equal(1, database.CommandCounter.ReaderExecutions);
+    }
+
+    [Fact]
+    public async Task Count_ignores_ordering_and_paging()
+    {
+        await using var database = await ExampleDatabase.CreateAsync();
+        var executor = new RelationalSpecExecutor<Order>(database.Context);
+        var request = Order.Search
+            .Matching.Paid
+            .Sorted.By.CreatedAt.Desc
+            .Page(2).OfSize(1);
+
+        Assert.Equal(3, await executor.CountAsync(request));
+    }
+
+    [Fact]
+    public async Task Page_totals_keep_global_query_filters()
+    {
+        await using var database = await ExampleDatabase.CreateAsync();
+        var executor = new RelationalSpecExecutor<Order>(database.Context);
+        var request = Order.Search.All
+            .Sorted.By.Id.Asc
+            .Page(1).OfSize(10);
+
+        var page = await executor.PageAsync(request);
+
+        Assert.Equal(4, page.TotalResults);
+        Assert.DoesNotContain(page.Results, order => order.Archived);
+    }
+
+    [Fact]
+    public async Task Unsupported_sort_fails_before_count_or_page_commands_execute()
+    {
+        await using var database = await ExampleDatabase.CreateAsync();
+        database.CommandCounter.Reset();
+        var unsupported = SearchField.Define<Order, string>(
+            "NormalizedCustomerName",
+            order => Normalize(order.CustomerName));
+        var request = Search.Matching(Paid)
+            .Sorted.By[unsupported].Asc
+            .Page(1).OfSize(25);
+        var executor = new RelationalSpecExecutor<Order>(database.Context);
+
+        var exception = await Assert.ThrowsAsync<SpecificationTranslationException>(() =>
+            executor.PageAsync(request));
+
+        var error = Assert.Single(exception.Errors);
+        Assert.Equal("ef-core-sort-translation-failed", error.Code);
+        Assert.Equal("$.sort[0]", error.NodePath);
+        Assert.Equal(0, database.CommandCounter.ReaderExecutions);
+    }
+
+    [Fact]
+    public async Task Unsupported_secondary_sort_reports_its_ordering_position_before_sql()
+    {
+        await using var database = await ExampleDatabase.CreateAsync();
+        database.CommandCounter.Reset();
+        var unsupported = SearchField.Define<Order, string>(
+            "NormalizedCustomerName",
+            order => Normalize(order.CustomerName));
+        var request = Order.Search
+            .Matching.Paid
+            .Sorted.By.Id.Asc
+            .Then.By[unsupported].Desc
+            .Page(1).OfSize(25);
+        var executor = new RelationalSpecExecutor<Order>(database.Context);
+
+        var exception = await Assert.ThrowsAsync<SpecificationTranslationException>(() =>
+            executor.PageAsync(request));
+
+        var error = Assert.Single(exception.Errors);
+        Assert.Equal("$.sort[1]", error.NodePath);
+        Assert.Equal(0, database.CommandCounter.ReaderExecutions);
+    }
+
+    [Fact]
+    public async Task Cancelled_page_search_does_not_preflight_count_or_query()
+    {
+        await using var database = await ExampleDatabase.CreateAsync();
+        database.CommandCounter.Reset();
+        var executor = new RelationalSpecExecutor<Order>(database.Context);
+        var request = Order.Search.All
+            .Sorted.By.Id.Asc
+            .Page(1).OfSize(10);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            executor.PageAsync(request, cancellation.Token));
+        Assert.Equal(0, database.CommandCounter.ReaderExecutions);
+    }
+
+    [Fact]
     public async Task Cancellation_is_preserved_and_does_not_trigger_local_fallback()
     {
         await using var database = await ExampleDatabase.CreateAsync();
@@ -267,13 +428,13 @@ public sealed class OrderFulfilmentExamples
     {
         await using var database = await ExampleDatabase.CreateAsync();
         var repository = new EfOrderRepository(database.Context);
-        var rule = CreatedBefore(DateTimeOffset.UtcNow);
+        var rule = ProviderTimestampBefore(DateTimeOffset.UtcNow);
 
         var exception = await Assert.ThrowsAsync<SpecificationTranslationException>(() =>
             repository.ListAsync(rule));
 
         var error = Assert.Single(exception.Errors);
-        Assert.Equal("order.created-before", error.RuleId);
+        Assert.Equal("order.provider-timestamp-before", error.RuleId);
         Assert.Equal("$", error.NodePath);
     }
 
@@ -336,7 +497,14 @@ public sealed class OrderFulfilmentExamples
             Spec<Order> specification,
             CancellationToken cancellationToken = default) =>
             _executor.AnyAsync(specification, cancellationToken);
+
+        public Task<Page<Order>> FindAsync(
+            PagedSearch<Order> search,
+            CancellationToken cancellationToken = default) =>
+            _executor.PageAsync(search, cancellationToken);
     }
+
+    private static string Normalize(string value) => value.Trim().ToUpperInvariant();
 
     private sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : DbContext(options)
     {
@@ -405,7 +573,8 @@ public sealed class OrderFulfilmentExamples
                     TotalCents = 15_000,
                     CustomerName = "Alice",
                     CustomerReference = null,
-                    CreatedAt = DateTimeOffset.UtcNow.AddDays(-3)
+                    CreatedAt = DateTime.UtcNow.AddDays(-3),
+                    ProviderTimestamp = DateTimeOffset.UtcNow.AddDays(-3)
                 },
                 new Order
                 {
@@ -416,7 +585,8 @@ public sealed class OrderFulfilmentExamples
                     TotalCents = 20_000,
                     CustomerName = "Bob",
                     CustomerReference = "OK",
-                    CreatedAt = DateTimeOffset.UtcNow.AddDays(-2)
+                    CreatedAt = DateTime.UtcNow.AddDays(-2),
+                    ProviderTimestamp = DateTimeOffset.UtcNow.AddDays(-2)
                 },
                 new Order
                 {
@@ -429,14 +599,16 @@ public sealed class OrderFulfilmentExamples
                     CustomerName = "Carol",
                     CustomerReference = "OK",
                     Customer = customer,
-                    CreatedAt = DateTimeOffset.UtcNow.AddDays(-1)
+                    CreatedAt = DateTime.UtcNow.AddDays(-1),
+                    ProviderTimestamp = DateTimeOffset.UtcNow.AddDays(-1)
                 },
                 new Order
                 {
                     Id = 4,
                     CustomerName = "Dave",
                     CustomerReference = "BLOCKED",
-                    CreatedAt = DateTimeOffset.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    ProviderTimestamp = DateTimeOffset.UtcNow
                 },
                 new Order
                 {
@@ -444,7 +616,8 @@ public sealed class OrderFulfilmentExamples
                     Archived = true,
                     CustomerName = "Archived",
                     CustomerReference = "ARCHIVED",
-                    CreatedAt = DateTimeOffset.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    ProviderTimestamp = DateTimeOffset.UtcNow
                 }
             };
 

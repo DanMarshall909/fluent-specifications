@@ -54,4 +54,4 @@ finally {
     }
 }
 
-Write-Host 'Documentation published to https://fluent-spec.danmarshall.dev.'
+Write-Host 'Documentation published to https://fluent-specifications.danmarshall.dev.'

@@ -1,4 +1,4 @@
-# AGENTS.md — fluent-spec.danmarshall.dev
+# AGENTS.md — fluent-specifications.danmarshall.dev
 
 ## Project notes
 
@@ -20,7 +20,7 @@
 
 ## GitHub Pages deployment
 
-- The custom domain is `fluent-spec.danmarshall.dev`.
+- The custom domain is `fluent-specifications.danmarshall.dev`.
 - GitHub Pages must serve the `gh-pages` branch from `/docs`.
 - The published branch must contain `docs/index.html`, `docs/CNAME`,
   `docs/.nojekyll`, and the rest of the generated site beneath `docs/`.

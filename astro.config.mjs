@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config';
 import { parameterHintTransformer } from './tools/parameter-hint-transformer.mjs';
 
 export default defineConfig({
-  site: 'https://fluent-spec.danmarshall.dev',
+  site: 'https://fluent-specifications.danmarshall.dev',
   outDir: './docs',
   trailingSlash: 'always',
   build: {

@@ -10,7 +10,7 @@
     "preview": "astro preview",
     "snippets:sync": "dotnet run --project tools/FluentSpecifications.Docs --configuration Release --no-restore -- sync",
     "snippets:check": "dotnet run --project tools/FluentSpecifications.Docs --configuration Release --no-restore -- check",
-    "test:content": "npm run snippets:check && node --test tests/site/content-contract.test.mjs",
+    "test:content": "npm run snippets:check && node --test tests/site/content-contract.test.mjs tests/site/versioning-contract.test.mjs",
     "test:site": "node --test tests/site/built-site.test.mjs",
     "test": "npm run test:content && npm run build && npm run test:site"
   },

@@ -14,6 +14,17 @@ public static class ShippingExamples
     public static Spec<Order> ValuableOrder(int minimumCents) =>
         CanShip.And.WorthAtLeast(minimumCents);
 
+    public static PagedSearch<Order> PriorityShippingPage()
+    {
+        var request = Order.Search
+            .Matching.CanShip.And.HighPriority
+            .Sorted.By.CreatedAt.Desc
+            .Then.By.Id.Asc
+            .Page(2).OfSize(50);
+
+        return request;
+    }
+
     public static bool ShouldDispatch(Order order)
     {
         if (order.CanShip)

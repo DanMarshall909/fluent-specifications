@@ -9,10 +9,6 @@ concurrency:
   group: publish-nuget-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  VERSION_PREFIX: '1.0'
-  BASE_COMMIT_COUNT: 4
-
 jobs:
   publish:
     if: vars.NUGET_PUBLISH_ENABLED == 'true'
@@ -37,20 +33,23 @@ jobs:
       - name: Verify the release
         run: dotnet test FluentSpecifications.slnx --configuration Release --no-restore -m:1 -nr:false
 
-      - name: Calculate the next patch version
+      - name: Read the selected package version
         id: package-version
         shell: bash
         run: |
-          commit_count=$(git rev-list --first-parent --count HEAD)
-          patch=$((commit_count - BASE_COMMIT_COUNT))
-          if [ "$patch" -lt 0 ]; then
-            echo "::error::Git history predates the configured package version baseline."
+          version=$(dotnet msbuild src/FluentSpecifications.Core/FluentSpecifications.Core.csproj -getProperty:PackageVersion -nologo)
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::The Core project PackageVersion '$version' is not a stable semantic version."
             exit 1
           fi
-          echo "version=${VERSION_PREFIX}.${patch}" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the semantic version is next
+        shell: pwsh
+        run: ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications' -CandidateVersion '${{ steps.package-version.outputs.version }}'
 
       - name: Pack ${{ steps.package-version.outputs.version }}
-        run: dotnet pack src/FluentSpecifications.Core/FluentSpecifications.Core.csproj --configuration Release --no-restore --output artifacts/packages -p:PackageVersion=${{ steps.package-version.outputs.version }}
+        run: dotnet pack src/FluentSpecifications.Core/FluentSpecifications.Core.csproj --configuration Release --no-restore --output artifacts/packages
 
       - name: Authenticate to NuGet.org with trusted publishing
         id: nuget-login
@@ -61,4 +60,3 @@ jobs:
       - name: Publish ${{ steps.package-version.outputs.version }} to NuGet.org
         run: |
           dotnet nuget push artifacts/packages/DanMarshall.FluentSpecifications.${{ steps.package-version.outputs.version }}.nupkg --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
-          dotnet nuget push artifacts/packages/DanMarshall.FluentSpecifications.${{ steps.package-version.outputs.version }}.snupkg --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

@@ -22,7 +22,9 @@ public sealed class Order
 
     public string? CustomerReference { get; set; }
 
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    public DateTimeOffset ProviderTimestamp { get; set; }
 
     public int? CustomerId { get; set; }
 

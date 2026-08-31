@@ -67,6 +67,20 @@ test('the testing guide points to representative executable contracts', () => {
   }
 });
 
+test('the agreed fluent search is the generated hero example', () => {
+  const homepage = read('src/pages/index.astro');
+  const gettingStarted = read('src/content/docs/getting-started.md');
+  const shippingExamples = read('examples/OrderFulfilment/ShippingExamples.cs');
+  const heroSymbol = 'M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.PriorityShippingPage|local:request';
+
+  assert.match(homepage, new RegExp(heroSymbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(gettingStarted, /\.Matching\.CanShip\.And\.HighPriority/);
+  assert.match(gettingStarted, /\.Sorted\.By\.CreatedAt\.Desc/);
+  assert.match(gettingStarted, /\.Then\.By\.Id\.Asc/);
+  assert.match(gettingStarted, /\.Page\(2\)\.OfSize\(50\)/);
+  assert.match(shippingExamples, /var request = Order\.Search/);
+});
+
 test('every authored C# fence is bound to a Roslyn symbol in its metadata', () => {
   const authoredMarkdown = [
     join(root, 'README.md'),
@@ -86,8 +100,8 @@ test('every authored C# fence is bound to a Roslyn symbol in its metadata', () =
 });
 
 test('custom-domain and deployment configuration follow the blog convention', () => {
-  assert.equal(read('CNAME').trim(), 'fluent-spec.danmarshall.dev');
-  assert.equal(read('public/CNAME').trim(), 'fluent-spec.danmarshall.dev');
+  assert.equal(read('CNAME').trim(), 'fluent-specifications.danmarshall.dev');
+  assert.equal(read('public/CNAME').trim(), 'fluent-specifications.danmarshall.dev');
 
   const workflow = read('.github/workflows/publish.yml');
   assert.match(workflow, /dotnet test/);
@@ -95,15 +109,19 @@ test('custom-domain and deployment configuration follow the blog convention', ()
   assert.match(workflow, /npm test/);
   assert.match(workflow, /dotnet pack/);
   assert.match(workflow, /actions\/upload-artifact@v4/);
-  assert.match(workflow, /BASE_COMMIT_COUNT:\s*4/);
+  assert.match(workflow, /-getProperty:PackageVersion/);
   assert.match(workflow, /peaceiris\/actions-gh-pages@v4/);
   assert.match(workflow, /destination_dir:\s*\.\/docs/);
   assert.match(workflow, /force_orphan:\s*true/);
 });
 
-test('NuGet publication starts at 1.0.0 and uses trusted publishing', () => {
+test('NuGet publication uses the manually selected project version and trusted publishing', () => {
   const workflow = read('.github/workflows/publish-nuget.yml');
   const readme = read('README.md');
+  const project = read('src/FluentSpecifications.Core/FluentSpecifications.Core.csproj');
+  const publicBaseline = read(
+    'tests/FluentSpecifications.NuGet.Tests/FluentSpecifications.NuGet.Tests.csproj',
+  );
 
   assert.match(workflow, /push:\s*\r?\n\s+branches:\s*\[main\]/);
   assert.match(workflow, /workflow_dispatch:/);
@@ -112,15 +130,35 @@ test('NuGet publication starts at 1.0.0 and uses trusted publishing', () => {
   assert.match(workflow, /uses:\s*NuGet\/login@v1/);
   assert.match(workflow, /user:\s*\$\{\{ vars\.NUGET_USER \}\}/);
   assert.match(workflow, /steps\.nuget-login\.outputs\.NUGET_API_KEY/);
-  assert.match(workflow, /VERSION_PREFIX:\s*'1\.0'/);
-  assert.match(workflow, /BASE_COMMIT_COUNT:\s*4/);
-  assert.match(workflow, /git rev-list --first-parent --count HEAD/);
-  assert.match(workflow, /-p:PackageVersion=\$\{\{ steps\.package-version\.outputs\.version \}\}/);
+  assert.match(project, /<Version>1\.1\.0<\/Version>/);
+  assert.match(workflow, /-getProperty:PackageVersion/);
+  assert.doesNotMatch(workflow, /VERSION_PREFIX|BASE_COMMIT_COUNT|git rev-list/);
+  assert.doesNotMatch(workflow, /-p:PackageVersion=/);
   assert.match(workflow, /https:\/\/api\.nuget\.org\/v3\/index\.json/);
   assert.match(workflow, /--skip-duplicate/);
+  assert.equal(
+    [...workflow.matchAll(/dotnet nuget push/g)].length,
+    1,
+    'pushing the nupkg already uploads its matching snupkg',
+  );
   assert.doesNotMatch(workflow, /secrets\.NUGET_API_KEY/);
+  assert.match(publicBaseline, /DanMarshall\.FluentSpecifications" Version="1\.0\.0"/);
+  assert.match(readme, /selected manually/);
   assert.match(readme, /Trusted Publishing/);
   assert.match(readme, /short-lived OIDC/);
+});
+
+test('all package-producing workflows read the Core project version', () => {
+  for (const path of [
+    '.github/workflows/publish.yml',
+    '.github/workflows/publish-nuget.yml',
+  ]) {
+    const workflow = read(path);
+
+    assert.match(workflow, /-getProperty:PackageVersion/);
+    assert.doesNotMatch(workflow, /VERSION_PREFIX|BASE_COMMIT_COUNT|git rev-list/);
+    assert.doesNotMatch(workflow, /-p:PackageVersion=/);
+  }
 });
 
 test('the homepage and documentation shell have deliberate responsive fallbacks', () => {

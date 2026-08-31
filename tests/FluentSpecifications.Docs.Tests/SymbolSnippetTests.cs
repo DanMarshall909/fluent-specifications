@@ -172,6 +172,69 @@ public sealed class SymbolSnippetTests
             hint => AssertHint(snippet.Code, hint, "values", "\"first\""));
     }
 
+    [Fact]
+    public void Extractor_can_select_a_named_local_from_its_parent_symbol()
+    {
+        const string source = """
+            namespace Examples;
+
+            public static class Searches
+            {
+                public static int Build()
+                {
+                    var request = Math.Clamp(50, 1, 100);
+                    return request;
+                }
+            }
+            """;
+        var extractor = new SymbolSnippetExtractor();
+
+        var snippet = extractor.ExtractDetailed(
+        [
+            new SourceDocument("Searches.cs", source)
+        ])["M:Examples.Searches.Build|local:request"];
+
+        Assert.Equal("var request = Math.Clamp(50, 1, 100);", snippet.Code);
+        Assert.Collection(
+            snippet.ParameterHints,
+            hint => AssertHint(snippet.Code, hint, "value", "50"),
+            hint => AssertHint(snippet.Code, hint, "min", "1"),
+            hint => AssertHint(snippet.Code, hint, "max", "100"));
+    }
+
+    [Fact]
+    public void Extractor_uses_unique_roslyn_method_symbols_when_a_generated_receiver_is_unresolved()
+    {
+        const string source = """
+            namespace Examples;
+
+            public sealed class PageBuilder
+            {
+                public PageBuilder Page(int number) => this;
+                public PageBuilder OfSize(int size) => this;
+            }
+
+            public static class Searches
+            {
+                public static void Build()
+                {
+                    var request = Generated.Order.Search.Page(2).OfSize(50);
+                }
+            }
+            """;
+        var extractor = new SymbolSnippetExtractor();
+
+        var snippet = extractor.ExtractDetailed(
+        [
+            new SourceDocument("Searches.cs", source)
+        ])["M:Examples.Searches.Build|local:request"];
+
+        Assert.Collection(
+            snippet.ParameterHints,
+            hint => AssertHint(snippet.Code, hint, "number", "2"),
+            hint => AssertHint(snippet.Code, hint, "size", "50"));
+    }
+
     private static void AssertHint(
         string code,
         ParameterHint hint,

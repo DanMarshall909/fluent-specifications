@@ -7,7 +7,7 @@ designed around terse domain language, structured explanations, and repository
 boundaries that do not leak `IQueryable`.
 
 Read the polished documentation at
-[fluent-spec.danmarshall.dev](https://fluent-spec.danmarshall.dev).
+[fluent-specifications.danmarshall.dev](https://fluent-specifications.danmarshall.dev).
 
 ## Install
 
@@ -15,9 +15,9 @@ Read the polished documentation at
 dotnet add package DanMarshall.FluentSpecifications
 ```
 
-One package installs both the `Spec<T>` runtime and the source generator that
-produces fluent connectors such as `.And.Paid` and opt-in domain properties
-such as `order.CanShip`.
+One package installs the `Spec<T>` and provider-neutral search runtime plus the
+source generator that produces fluent rules plus opt-in fields, search phrases,
+and domain properties such as `order.CanShip`.
 
 ### Zero third-party package dependencies
 
@@ -27,6 +27,18 @@ Roslyn compiler APIs supplied by Microsoft's C# toolchain. It neither downloads
 nor bundles another vendor's runtime or compiler assemblies.
 
 ## Readable at the call site
+
+The primary search example is fully generated from the entity's rule and field
+catalogs—without a lambda, string field name, operator overload, `DbSet`, or
+`IQueryable`:
+
+```csharp symbol="M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.PriorityShippingPage|local:request"
+var request = Order.Search
+    .Matching.CanShip.And.HighPriority
+    .Sorted.By.CreatedAt.Desc
+    .Then.By.Id.Asc
+    .Page(2).OfSize(50);
+```
 
 The example application composes an immutable rule without overloaded Boolean
 operators:
@@ -88,15 +100,19 @@ public interface IOrderRepository
     Task<bool> AnyAsync(
         Spec<Order> specification,
         CancellationToken cancellationToken = default);
+
+    Task<Page<Order>> FindAsync(
+        PagedSearch<Order> search,
+        CancellationToken cancellationToken = default);
 }
 ```
 
 The optional relational EF Core adapter preflights translation and materializes
-`List`, `Any`, or `Count` operations. Unsupported filters produce structured
+`List`, `Page`, `Any`, or `Count` operations. Unsupported filters or sorts produce structured
 translation errors before a `SELECT`; they never trigger implicit client-side
 filtering. Its public API does not accept or return `IQueryable`.
 
-Read the [EF Core guide](https://fluent-spec.danmarshall.dev/docs/ef-core/) for
+Read the [EF Core guide](https://fluent-specifications.danmarshall.dev/docs/ef-core/) for
 null semantics, collations, navigations, global filters, provider limitations,
 and the limits of SQLite-based testing.
 
@@ -153,7 +169,7 @@ the repository. Missing, ambiguous, or stale extracts fail
 
 The documentation site is authored as Markdown under `src/content/docs`, built
 with Astro into `docs/`, and published by GitHub Actions under
-`gh-pages:/docs`. Both `CNAME` copies target `fluent-spec.danmarshall.dev`,
+`gh-pages:/docs`. Both `CNAME` copies target `fluent-specifications.danmarshall.dev`,
 matching the deployment style used by Dan's blog.
 
 ## Build and test
@@ -166,7 +182,12 @@ snippet freshness, Markdown contracts, the production Astro build, metadata,
 custom-domain artifacts, and internal links.
 
 `DanMarshall.FluentSpecifications` 1.x is the public starter package. Releases
-begin at 1.0.0, and each push to `main` receives the next patch version. The
+begin at 1.0.0. The next release is selected manually with the Core project's
+`Version`; CI reads its exact effective `PackageVersion` rather than deriving a
+version from Git history. The publisher checks the selected version against
+NuGet.org before packing or requesting credentials. It accepts only the
+immediate next patch, minor, or major SemVer transition, so an unchanged
+version, duplicate, or gap fails before Trusted Publishing authentication. The
 checked-in [SPECIFICATION.md](SPECIFICATION.md), package-consumer tests, and
 executable conformance suites define its version-one contract.
 

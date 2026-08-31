@@ -67,6 +67,26 @@ public static Spec<Order> ReadyToShip() =>
 The returned value is still a `Spec<Order>`. It can be reused, rendered,
 diagnosed, or passed to infrastructure without losing its rule tree.
 
+## Filter, sort, and page without a query API
+
+When a repository needs more than a Boolean filter, start a separate immutable
+search from the entity type. Search generation is opt-in: set
+`GenerateSearch = true` on the entity's `SpecificationSet<T>` catalog. The
+target entity then lets the generator infer both the rule and field catalogs:
+
+```csharp symbol="M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.PriorityShippingPage|local:request"
+var request = Order.Search
+    .Matching.CanShip.And.HighPriority
+    .Sorted.By.CreatedAt.Desc
+    .Then.By.Id.Asc
+    .Page(2).OfSize(50);
+```
+
+`Order` is the entity—not a `DbSet`. `Order.Search` only creates a
+provider-neutral description. A repository materializes it; application code
+never receives `IQueryable`. `Order.Rules` and `Order.Fields` remain available
+when a rule or field needs to be selected dynamically.
+
 ## Use a rule as domain language
 
 Mark a zero-argument rule with `[Expose]` when it deserves to read like a
@@ -110,7 +130,8 @@ a runtime dependency.
 
 Provider translation remains deliberately separate. The repository contains
 expression and EF Core adapters, but the starter package does not pull EF Core
-or expose `IQueryable` to application code.
+or expose `IQueryable` to application code. Filtering, sorting, and paging are
+described in the starter package and executed only by infrastructure.
 
 ## Where to go next
 

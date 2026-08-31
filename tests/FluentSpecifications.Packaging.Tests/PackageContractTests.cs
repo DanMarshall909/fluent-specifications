@@ -9,11 +9,11 @@ namespace FluentSpecifications.Packaging.Tests;
 public sealed class PackageContractTests
 {
     private const string PackageId = "DanMarshall.FluentSpecifications";
-    private const string PackageVersion = "1.0.0";
+    private const string PackageVersion = "1.1.0";
     private static readonly Lazy<PackageArtifact> Package = new(BuildPackage);
 
     [Fact]
-    public void Package_has_the_public_version_one_identity_and_metadata()
+    public void Package_has_the_selected_release_identity_and_metadata()
     {
         var artifact = Package.Value;
 
@@ -27,7 +27,7 @@ public sealed class PackageContractTests
             MetadataValue(artifact.Manifest, "description"),
             StringComparison.Ordinal);
         Assert.Equal(
-            "https://fluent-spec.danmarshall.dev",
+            "https://fluent-specifications.danmarshall.dev",
             MetadataValue(artifact.Manifest, "projectUrl").TrimEnd('/'));
         Assert.Equal(
             "https://github.com/DanMarshall909/fluent-specifications",
@@ -95,10 +95,12 @@ public sealed class PackageContractTests
             $$"""
               <?xml version="1.0" encoding="utf-8"?>
               <configuration>
+                <config>
+                  <add key="globalPackagesFolder" value="{{SecurityElement.Escape(Path.Combine(consumerRoot, "packages-cache"))}}" />
+                </config>
                 <packageSources>
                   <clear />
                   <add key="package-under-test" value="{{SecurityElement.Escape(artifact.OutputDirectory)}}" />
-                  <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
                 </packageSources>
               </configuration>
               """);
@@ -122,11 +124,17 @@ public sealed class PackageContractTests
             """
             using FluentSpecifications;
 
-            [SpecificationSet<Order>]
+            [SpecificationSet<Order>(GenerateSearch = true)]
             public static partial class OrderRules
             {
                 public static Spec<Order> Paid =>
                     Spec.Define<Order>("order.paid", "Paid", order => order.Paid);
+
+                public static Spec<Order> HighPriority =>
+                    Spec.Define<Order>(
+                        "order.high-priority",
+                        "High priority",
+                        order => order.HighPriority);
 
                 [Expose]
                 public static Spec<Order> CanShip => Paid.Named("order.can-ship", "Can ship");
@@ -134,7 +142,13 @@ public sealed class PackageContractTests
 
             public sealed class Order
             {
+                public int Id { get; init; }
+
                 public bool Paid { get; init; }
+
+                public bool HighPriority { get; init; }
+
+                public System.DateTime CreatedAt { get; init; }
             }
 
             public static class Shipping
@@ -142,6 +156,12 @@ public sealed class PackageContractTests
                 public static Spec<Order> Ready => OrderRules.CanShip.And.Paid;
 
                 public static bool ShouldShip(Order order) => order.CanShip;
+
+                public static PagedSearch<Order> PriorityPage => Order.Search
+                    .Matching.CanShip.And.HighPriority
+                    .Sorted.By.CreatedAt.Desc
+                    .Then.By.Id.Asc
+                    .Page(2).OfSize(50);
             }
             """);
 

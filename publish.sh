@@ -28,4 +28,4 @@ cp -a docs/. "$deploy_worktree/docs/"
 )
 git worktree remove "$deploy_worktree"
 
-echo 'Documentation published to https://fluent-spec.danmarshall.dev.'
+echo 'Documentation published to https://fluent-specifications.danmarshall.dev.'

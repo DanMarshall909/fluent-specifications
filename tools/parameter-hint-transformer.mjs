@@ -1,10 +1,8 @@
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const parameterHints = JSON.parse(
-  readFileSync(
-    new URL('../src/generated/parameter-hints.json', import.meta.url),
-    'utf8',
-  ),
+  readFileSync(join(process.cwd(), 'src', 'generated', 'parameter-hints.json'), 'utf8'),
 );
 
 function readSymbol(rawMetadata = '') {

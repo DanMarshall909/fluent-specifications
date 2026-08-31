@@ -2,7 +2,7 @@
 
 ## Library specification
 
-Status: Implemented draft 0.1  
+Status: Implemented through 1.1 search shaping
 Date: 2026-08-31
 
 This document defines the required behaviour and intended public experience of
@@ -62,6 +62,10 @@ It MUST NOT contain:
 
 Those concerns are not closed under Boolean composition. Mixing them into a
 specification makes expressions such as `a.Or.b` ambiguous or incorrect.
+
+Sorting and paging belong to a separate immutable `Search<T>` description.
+`Search<T>` MAY contain one `Spec<T>`, but a `Spec<T>` MUST never contain or
+inherit search shaping.
 
 ### 2.2 No persistence API in application code
 
@@ -127,6 +131,9 @@ defined here.
 - **Candidate**: the object against which a rule is evaluated.
 - **Preparation**: translation of a specification into a provider-specific,
   reusable execution plan.
+- **Search**: an immutable, provider-neutral description combining a Boolean
+  rule with optional ordering and paging.
+- **Field**: a generated, strongly typed selector for a readable entity member.
 
 ## 5. Defining rules
 
@@ -318,6 +325,15 @@ var rule = FulfilmentOrderRules.CanShip
 
 The generator SHOULD diagnose ambiguities it can see in the current
 compilation.
+
+Exactly one catalog per candidate type MAY opt in to the inferred
+`Order.Search`, `Order.Rules`, and `Order.Fields` language by setting
+`GenerateSearch = true` on `SpecificationSet<T>`. Search generation MUST remain
+off when the option is omitted so existing specification catalogs retain their
+1.x source shape. Multiple search-generating catalogs MUST produce a
+compile-time diagnostic rather than leaving ambiguous entity entry points.
+Other catalogs continue to generate their ordinary `Spec<T>` connector
+language.
 
 ## 7. Core API
 
@@ -674,8 +690,97 @@ The specification does not encode whether the operation is `List`, `Any`,
 `Count`, `First`, or another repository action. The repository method owns that
 choice.
 
-Sorting, paging, and projection MAY be explicit repository parameters or part
-of an application-specific request object, but MUST NOT be added to `Spec<T>`.
+### 14.1 Provider-neutral search shaping
+
+Applications MAY use the generated search language when a repository operation
+needs filtering, ordering, and paging together:
+
+```csharp
+var request = Order.Search
+    .Matching.CanShip.And.HighPriority
+    .Sorted.By.CreatedAt.Desc
+    .Then.By.Id.Asc
+    .Page(2).OfSize(50);
+
+var page = await orderRepository.FindAsync(request, cancellationToken);
+```
+
+The example above is normative. The generated fluent surface MUST provide:
+
+- `Order.Search`, where `Order` is the candidate entity type;
+- `.Matching.<Rule>` and `.Matching.<ParameterizedRule>(...)`, inferred from
+  the entity's specification catalog;
+- `.For(specification)` on `Order.Search` for a dynamically composed rule;
+- `Order.Rules.<Rule>` as the explicit generated rule catalog;
+- `Order.Fields.<Field>` as the explicit generated field catalog;
+- `.Sorted.By.<Field>.Asc|Desc` for primary ordering;
+- `.Then.By.<Field>.Asc|Desc` for every subsequent ordering;
+- `.Page(number).OfSize(size)` for one-based paging; and
+- `.All` as the explicit unfiltered starting point.
+
+The generated shorthand MUST be equivalent to the explicit form:
+
+```csharp
+var rule = Order.Rules.CanShip.And.HighPriority;
+
+var request = Order.Search
+    .For(rule)
+    .Sorted.By[Order.Fields.CreatedAt].Desc
+    .Then.By[Order.Fields.Id].Asc
+    .Page(2).OfSize(50);
+```
+
+`Order.Search`, `Order.Rules`, and `Order.Fields` are static extension members
+on the entity type. They MUST NOT require the entity to inherit from a library
+type or expose an Entity Framework `DbSet`.
+
+The generator MUST include effective inherited public readable entity members
+in `Order.Fields`, preferring the most-derived declaration when a member is
+overridden or hidden. It MUST diagnose entity members named `Search`, `Rules`,
+or `Fields` that would hide an inferred entry point. Indexers, static members,
+and non-public getters MUST NOT become generated fields. Generated field types
+MUST preserve nullable annotations at every nested type position.
+
+An opted-in catalog MUST diagnose existing members named `SearchRoot`,
+`RuleCatalog`, `SearchRuleCatalog`, or `FieldCatalog`, because those names are
+reserved for its generated search-support types. The diagnostic MUST suppress
+search emission so the catalog's ordinary rule language can still compile.
+
+When a field name is hidden by an inherited `object` member on the field-selector
+wrapper, including `Equals`, `GetHashCode`, `GetType`, `MemberwiseClone`,
+`ReferenceEquals`, or `ToString`, the explicit indexer form
+`.Sorted.By[Order.Fields.ToString]` or `.Then.By[Order.Fields.ToString]` MUST
+remain available.
+
+A search MUST remain immutable and safe for concurrent reuse. Paging MUST be
+unavailable until at least one explicit sort direction has been selected.
+`Then` MUST be unavailable until a primary sort exists. A page number and page
+size MUST both be positive. Offset arithmetic MUST reject overflow rather than
+wrapping.
+
+The first ordering is authoritative. Each `Then` is an ordered tie-breaker and
+MUST preserve the previously selected ordering. Reusing a field is allowed and
+has the same semantics as repeating the corresponding provider ordering.
+
+The reference result shape is:
+
+```csharp
+public sealed class Page<T>
+{
+    public IReadOnlyList<T> Results { get; }
+    public int Number { get; }
+    public int Size { get; }
+    public int TotalResults { get; }
+    public int TotalPages { get; }
+}
+```
+
+`TotalPages` MUST be zero for zero results and otherwise use ceiling division.
+The final page MAY contain fewer results than `Size`.
+
+Search shaping MUST NOT include projection, eager loading, joins, tracking,
+split-query flags, global-filter bypasses, provider functions, or an exposed
+query object. Those remain repository and infrastructure concerns.
 
 ## 15. Provider translation
 
@@ -734,6 +839,19 @@ An adapter MUST NOT respond to unsupported translation by:
 
 It MUST return or throw a structured translation error before executing the
 query.
+
+For a paged search, the adapter MUST:
+
+1. prepare the complete filter and every ordering before executing a command;
+2. count the filtered results without applying ordering or paging;
+3. apply the complete deterministic ordering;
+4. apply the page offset and size; and
+5. materialize a `Page<T>`.
+
+An unsupported field selector MUST fail before either the count or page query
+executes. The adapter MUST NOT fall back to client-side ordering or paging.
+Global query filters remain active, and infrastructure retains ownership of
+tracking and other provider-specific behaviour.
 
 ### 15.2 Semantics
 
@@ -899,6 +1017,18 @@ Every adapter MUST test:
 - preparation failure before execution; and
 - absence of implicit client-side evaluation.
 
+Search-capable adapters MUST additionally test:
+
+- generated field ordering in both directions;
+- stable multi-field tie-breaking;
+- one-based page boundaries and a short final page;
+- empty results and `TotalPages == 0`;
+- invalid page numbers, sizes, and offset overflow;
+- count semantics that ignore ordering and paging;
+- complete preflight before the first database command;
+- cancellation before execution; and
+- absence of `IQueryable` from every public search and adapter signature.
+
 Where an in-memory result and provider result differ intentionally, the test
 must name and document that difference.
 
@@ -914,7 +1044,7 @@ Version 1 is not:
 - an authorization policy engine;
 - a mutation or command specification;
 - an async workflow engine;
-- a container for includes, joins, sorting, paging, or projections; or
+- a container for includes, joins, or projections; or
 - a promise that every valid .NET expression can be translated by every
   provider.
 
@@ -940,7 +1070,8 @@ Version 1 is acceptable when all of the following are true:
 10. The reference expression-plan adapter translates every core node without
     `InvocationExpression`; provider-specific adapters reject unsupported
     expressions without fetching and filtering locally.
-11. Query shaping remains outside `Spec<T>`.
+11. Query shaping remains outside `Spec<T>` and is represented by immutable
+    provider-neutral searches.
 12. Core, generator, and adapter conformance suites pass.
 
 ## Appendix A: Non-normative influences

@@ -2,7 +2,7 @@ using FluentSpecifications;
 
 namespace FluentSpecifications.Examples.OrderFulfilment;
 
-[SpecificationSet<Order>]
+[SpecificationSet<Order>(GenerateSearch = true)]
 public static partial class OrderRules
 {
     public static Spec<Order> Paid =>
@@ -77,11 +77,17 @@ public static partial class OrderRules
             "Unsafe customer named",
             order => order.Customer!.Name == expected);
 
-    public static Spec<Order> CreatedBefore(DateTimeOffset cutoff) =>
+    public static Spec<Order> CreatedBefore(DateTime cutoff) =>
         Spec.Define<Order>(
             "order.created-before",
             "Created before",
             order => order.CreatedAt < cutoff);
+
+    public static Spec<Order> ProviderTimestampBefore(DateTimeOffset cutoff) =>
+        Spec.Define<Order>(
+            "order.provider-timestamp-before",
+            "Provider timestamp before",
+            order => order.ProviderTimestamp < cutoff);
 
     [Expose]
     public static Spec<Order> CanShip =>

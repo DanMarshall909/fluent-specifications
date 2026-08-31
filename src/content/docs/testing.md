@@ -167,6 +167,58 @@ cancellation, parameterization, no-tracking materialization, constants, and the
 absence of an `IQueryable` public surface through
 `Public_ef_adapter_api_never_returns_or_accepts_iqueryable`.
 
+The happy path asserts filtering, ordered tie-breaking, one-based paging, and
+the total metadata returned from the real SQLite adapter:
+
+```csharp symbol="M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Fluent_search_filters_sorts_and_returns_page_metadata"
+[Fact]
+public async Task Fluent_search_filters_sorts_and_returns_page_metadata()
+{
+    await using var database = await ExampleDatabase.CreateAsync();
+    var repository = new EfOrderRepository(database.Context);
+    var request = Order.Search
+        .Matching.Paid
+        .Sorted.By.CreatedAt.Desc
+        .Then.By.Id.Asc
+        .Page(2).OfSize(1);
+
+    var page = await repository.FindAsync(request);
+
+    Assert.Equal([2], page.Results.Select(order => order.Id));
+    Assert.Equal(2, page.Number);
+    Assert.Equal(1, page.Size);
+    Assert.Equal(3, page.TotalResults);
+    Assert.Equal(3, page.TotalPages);
+}
+```
+
+The failure path proves an unsupported field is rejected before either the
+count or page query reaches the database:
+
+```csharp symbol="M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Unsupported_sort_fails_before_count_or_page_commands_execute"
+[Fact]
+public async Task Unsupported_sort_fails_before_count_or_page_commands_execute()
+{
+    await using var database = await ExampleDatabase.CreateAsync();
+    database.CommandCounter.Reset();
+    var unsupported = SearchField.Define<Order, string>(
+        "NormalizedCustomerName",
+        order => Normalize(order.CustomerName));
+    var request = Search.Matching(Paid)
+        .Sorted.By[unsupported].Asc
+        .Page(1).OfSize(25);
+    var executor = new RelationalSpecExecutor<Order>(database.Context);
+
+    var exception = await Assert.ThrowsAsync<SpecificationTranslationException>(() =>
+        executor.PageAsync(request));
+
+    var error = Assert.Single(exception.Errors);
+    Assert.Equal("ef-core-sort-translation-failed", error.Code);
+    Assert.Equal("$.sort[0]", error.NodePath);
+    Assert.Equal(0, database.CommandCounter.ReaderExecutions);
+}
+```
+
 ## Documentation snippets are tested too
 
 Each fence carries a Roslyn documentation ID in its metadata. The extractor

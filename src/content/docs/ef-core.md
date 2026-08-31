@@ -6,8 +6,8 @@ section: Infrastructure
 ---
 
 The EF Core adapter is deliberately a materializing infrastructure boundary.
-Applications pass Boolean rules to repositories; they do not receive deferred
-queries, provider expressions, or EF configuration.
+Applications pass Boolean rules or immutable searches to repositories; they do
+not receive deferred queries, provider expressions, or EF configuration.
 
 ## The repository owns the query
 
@@ -23,6 +23,10 @@ public interface IOrderRepository
     Task<bool> AnyAsync(
         Spec<Order> specification,
         CancellationToken cancellationToken = default);
+
+    Task<Page<Order>> FindAsync(
+        PagedSearch<Order> search,
+        CancellationToken cancellationToken = default);
 }
 ```
 
@@ -37,9 +41,19 @@ public static Task<IReadOnlyList<Order>> FindReadyOrdersAsync(
         cancellationToken);
 ```
 
-Sorting, paging, projections, includes, tracking, split queries, and cache
-policy remain repository concerns because they are not Boolean rules and are
-not meaningfully closed under `And` or `Or`.
+Sorting and paging remain outside the Boolean rule but can travel in a separate,
+provider-neutral search description:
+
+```csharp symbol="M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.PriorityShippingPage|local:request"
+var request = Order.Search
+    .Matching.CanShip.And.HighPriority
+    .Sorted.By.CreatedAt.Desc
+    .Then.By.Id.Asc
+    .Page(2).OfSize(50);
+```
+
+Projection, includes, tracking, split queries, provider functions, and cache
+policy remain infrastructure concerns.
 
 ## Translation is checked before execution
 
@@ -76,7 +90,9 @@ silently evaluating them on the client. Only the top-level projection permits
 limited client evaluation. See Microsoft's [client versus server evaluation](https://learn.microsoft.com/en-us/ef/core/querying/client-eval)
 guidance.
 
-`ListAsync`, `AnyAsync`, and `CountAsync` return a list, Boolean, or integer.
+`ListAsync`, `PageAsync`, `AnyAsync`, and `CountAsync` return materialized
+answers. A paged search is fully preflighted before the adapter counts or loads
+rows; its count ignores sorting and paging and becomes `Page<T>.TotalResults`.
 The adapter's exported API is guarded against accidentally accepting or
 returning `IQueryable`:
 
@@ -181,13 +197,13 @@ public async Task Provider_specific_scalar_limit_is_a_structured_translation_err
 {
     await using var database = await ExampleDatabase.CreateAsync();
     var repository = new EfOrderRepository(database.Context);
-    var rule = CreatedBefore(DateTimeOffset.UtcNow);
+    var rule = ProviderTimestampBefore(DateTimeOffset.UtcNow);
 
     var exception = await Assert.ThrowsAsync<SpecificationTranslationException>(() =>
         repository.ListAsync(rule));
 
     var error = Assert.Single(exception.Errors);
-    Assert.Equal("order.created-before", error.RuleId);
+    Assert.Equal("order.provider-timestamp-before", error.RuleId);
     Assert.Equal("$", error.NodePath);
 }
 ```

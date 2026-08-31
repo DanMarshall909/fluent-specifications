@@ -23,6 +23,11 @@ infrastructure translation without changing that meaning.
 | `Check` | Structured complete or short-circuit diagnostics |
 | `Named` | Add a domain boundary without discarding child rules |
 | `Accept` | Provider-facing traversal over the closed rule tree |
+| `Order.Search` | Generated, provider-neutral search entry point |
+| `Order.Rules` | Explicit generated rule catalog for dynamic composition |
+| `Order.Fields` | Strongly typed generated field catalog |
+| `Search<T>` | Immutable filter, ordering, and optional paging description |
+| `Page<T>` | Materialized results plus page and total metadata |
 
 The retained node kinds are `Always`, `Never`, `Leaf`, `Named`, `And`, `Or`, and
 `Not`. `AndNot`, `OrNot`, `AllOf`, and `AnyOf` are construction conveniences
@@ -37,6 +42,10 @@ that normalize to those nodes.
 | `WorthAtLeast(int)` | `rule.And.WorthAtLeast(10_000)` |
 | grouped or dynamic rule | `rule.And(otherRule)` |
 | `[Expose] CanShip` | `order.CanShip` |
+| inferred search rule | `Order.Search.Matching.CanShip` |
+| primary field ordering | `.Sorted.By.CreatedAt.Desc` |
+| tie-break ordering | `.Then.By.Id.Asc` |
+| one-based page | `.Page(2).OfSize(50)` |
 
 The first version deliberately does not overload Boolean operators and does not
 implicitly convert between specifications, expressions, delegates, or Boolean
@@ -46,8 +55,8 @@ values.
 
 | Project | Owns | Must not own |
 | --- | --- | --- |
-| `FluentSpecifications.Core` | Rule tree, evaluation, diagnostics, traversal contracts | EF or query-provider types |
-| `FluentSpecifications.Generators` | Catalog discovery and C# 14 extension members | Runtime query execution |
+| `FluentSpecifications.Core` | Rule tree, immutable searches, generated-field descriptors, pages, evaluation, diagnostics, traversal contracts | EF or query-provider types |
+| `FluentSpecifications.Generators` | Catalog discovery and C# 14 rule, field, and search extension members | Runtime query execution |
 | `FluentSpecifications.Expressions` | Parameter-rebound expression plans | `IQueryable` application |
 | `FluentSpecifications.EntityFrameworkCore` | Relational preflight and materialization | Domain repository contracts |
 | `FluentSpecifications.Docs` | Roslyn symbol extraction and Markdown synchronization | Business-rule execution |
@@ -57,11 +66,18 @@ Dependencies point inward. Core has no reference to a provider adapter.
 ## NuGet package
 
 The 1.x line is packaged as `DanMarshall.FluentSpecifications`, beginning at
-1.0.0. Each push to `main` receives the next patch version. The package combines
-the core runtime with the source generator so the normal install is one package
-reference. Its NuGet dependency list is empty: there are **zero third-party
-package dependencies**, and no Microsoft runtime or compiler DLLs are bundled.
-The package uses only the .NET and Roslyn platform supplied by Microsoft.
+1.0.0. Maintainers select the next SemVer explicitly with the Core project's
+`Version`; CI reads its exact effective `PackageVersion` instead of deriving one
+from Git history. The package combines the core runtime with the source
+generator so the normal install is one package reference. Its NuGet dependency
+list is empty: there are **zero third-party package dependencies**, and no
+Microsoft runtime or compiler DLLs are bundled. The package uses only the .NET
+and Roslyn platform supplied by Microsoft.
+
+Before packing or requesting a publishing credential, CI compares the selected
+version with NuGet.org. Only the immediate next patch, minor, or major SemVer
+transition is accepted; unchanged versions, duplicates, gaps, and
+prerelease-shaped versions fail the release.
 
 The expression and EF Core projects remain separate infrastructure adapters;
 they are not transitive dependencies of the starter package.
@@ -91,6 +107,20 @@ leaf is responsible. They do not contain candidate values.
 | `FSPEC002` | An exposed property would hide an instance member |
 | `FSPEC003` | Generated extension properties require C# 14 |
 | `FSPEC004` | A rule member shape cannot be represented safely |
+| `FSPEC005` | More than one catalog tries to generate inferred search language for an entity |
+| `FSPEC006` | An entity member would hide `Search`, `Rules`, or `Fields` |
+| `FSPEC007` | A catalog member would collide with a generated search-support type |
+
+Search generation is opt-in for 1.x source compatibility. Mark the one catalog
+that owns an entity's inferred search language with `GenerateSearch = true` on
+its `SpecificationSet<T>` attribute. Other catalogs keep generating their
+normal specification connectors. Generated fields include effective inherited
+public readable members, while indexers, static members, and inaccessible
+getters are omitted. Existing catalog members named `SearchRoot`, `RuleCatalog`,
+`SearchRuleCatalog`, or `FieldCatalog` are diagnosed because those names are
+reserved for generated support types. If a field name collides with an
+inherited `object` member on the selector, use the explicit dynamic form
+`.Sorted.By[Order.Fields.ToString]` or `.Then.By[Order.Fields.ToString]`.
 
 ## Deliberate non-goals
 
@@ -103,11 +133,14 @@ A specification is not a container for:
 - a promise that every .NET expression translates everywhere; or
 - a universal repository framework.
 
-Those exclusions keep `a.Or.b` meaningful. A query modifier cannot generally be
-combined with Boolean algebra without surprising behavior.
+Those exclusions keep `a.Or.b` meaningful. Sorting and paging therefore live
+in the separate immutable `Search<T>` description. Searches still exclude
+projection, joins, includes, tracking, split-query settings, and provider
+objects.
 
 ## Current status
 
 The repository targets C# 14 and .NET 10. `DanMarshall.FluentSpecifications`
-1.0.0 is the version-one starter package; the checked-in specification and
-executable tests define its behavioral contract.
+1.1.0 adds opt-in, provider-neutral search shaping to the 1.0.0 starter
+package; the checked-in specification and executable tests define its
+behavioral contract.

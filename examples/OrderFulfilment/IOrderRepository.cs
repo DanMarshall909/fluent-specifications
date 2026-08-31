@@ -11,4 +11,8 @@ public interface IOrderRepository
     Task<bool> AnyAsync(
         Spec<Order> specification,
         CancellationToken cancellationToken = default);
+
+    Task<Page<Order>> FindAsync(
+        PagedSearch<Order> search,
+        CancellationToken cancellationToken = default);
 }

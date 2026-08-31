@@ -37,7 +37,7 @@ function outputPathForHref(fromFile, href) {
 }
 
 test('the build emits the custom-domain files expected by GitHub Pages', () => {
-  assert.equal(readFileSync(join(outputRoot, 'CNAME'), 'utf8').trim(), 'fluent-spec.danmarshall.dev');
+  assert.equal(readFileSync(join(outputRoot, 'CNAME'), 'utf8').trim(), 'fluent-specifications.danmarshall.dev');
   assert.ok(existsSync(join(outputRoot, '.nojekyll')));
 });
 
@@ -56,6 +56,15 @@ test('C# examples render subtle generated parameter hints', () => {
   );
 });
 
+test('the homepage hero is the fluent search and shows generated page hints', () => {
+  const html = readFileSync(join(outputRoot, 'index.html'), 'utf8');
+
+  assert.match(html, /Matching[^<]*CanShip[^<]*And[^<]*HighPriority/s);
+  assert.match(html, /Sorted[^<]*By[^<]*CreatedAt[^<]*Desc/s);
+  assert.match(html, /data-parameter-hint="number:"/);
+  assert.match(html, /data-parameter-hint="size:"/);
+});
+
 test('every generated page has production metadata and valid internal links', () => {
   const pages = findFiles(outputRoot, 'index.html');
   assert.ok(pages.length >= 8, `expected at least 8 pages, received ${pages.length}`);
@@ -67,7 +76,7 @@ test('every generated page has production metadata and valid internal links', ()
     assert.match(html, /<html[^>]+lang="en"/i, `${label} has no language`);
     assert.match(html, /<title>[^<]+<\/title>/i, `${label} has no title`);
     assert.match(html, /<meta name="description" content="[^"]{70,}"/i, `${label} has no useful description`);
-    assert.match(html, /<link rel="canonical" href="https:\/\/fluent-spec\.danmarshall\.dev\//i, `${label} has no production canonical URL`);
+    assert.match(html, /<link rel="canonical" href="https:\/\/fluent-specifications\.danmarshall\.dev\//i, `${label} has no production canonical URL`);
 
     for (const [, href] of html.matchAll(/href="([^"]+)"/g)) {
       const target = outputPathForHref(page, href);

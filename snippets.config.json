@@ -1,5 +1,5 @@
 {
   "siteSymbols": [
-    "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.ReadyToShip"
+    "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.PriorityShippingPage|local:request"
   ]
 }

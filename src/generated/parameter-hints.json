@@ -147,6 +147,24 @@
       "name": "key"
     }
   ],
+  "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Fluent_search_filters_sorts_and_returns_page_metadata": [
+    {
+      "offset": 194,
+      "name": "context"
+    },
+    {
+      "offset": 339,
+      "name": "number"
+    },
+    {
+      "offset": 349,
+      "name": "size"
+    },
+    {
+      "offset": 396,
+      "name": "search"
+    }
+  ],
   "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Null_inequality_has_matching_clr_and_default_ef_semantics": [
     {
       "offset": 198,
@@ -179,11 +197,11 @@
       "name": "context"
     },
     {
-      "offset": 253,
+      "offset": 263,
       "name": "cutoff"
     },
     {
-      "offset": 393,
+      "offset": 403,
       "name": "specification"
     }
   ],
@@ -215,6 +233,40 @@
       "name": "specification"
     }
   ],
+  "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Unsupported_sort_fails_before_count_or_page_commands_execute": [
+    {
+      "offset": 260,
+      "name": "name"
+    },
+    {
+      "offset": 294,
+      "name": "selector"
+    },
+    {
+      "offset": 313,
+      "name": "value"
+    },
+    {
+      "offset": 369,
+      "name": "specification"
+    },
+    {
+      "offset": 394,
+      "name": "field"
+    },
+    {
+      "offset": 425,
+      "name": "number"
+    },
+    {
+      "offset": 435,
+      "name": "size"
+    },
+    {
+      "offset": 626,
+      "name": "search"
+    }
+  ],
   "M:FluentSpecifications.Examples.OrderFulfilment.OrderRules.WorthAtLeast(System.Int32)": [
     {
       "offset": 92,
@@ -239,6 +291,16 @@
     {
       "offset": 184,
       "name": "specification"
+    }
+  ],
+  "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.PriorityShippingPage|local:request": [
+    {
+      "offset": 126,
+      "name": "number"
+    },
+    {
+      "offset": 136,
+      "name": "size"
     }
   ],
   "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.ReadyToShip": [],
@@ -292,7 +354,12 @@
     }
   ],
   "M:FluentSpecifications.Generator.IntegrationTests.GeneratedDslTests.Parameterized_rules_keep_parentheses_only_for_arguments": [],
-  "M:FluentSpecifications.Generator.IntegrationTests.GeneratedDslTests.Params_overloads_and_keyword_parameter_names_survive_generation": [],
+  "M:FluentSpecifications.Generator.IntegrationTests.GeneratedDslTests.Params_overloads_and_keyword_parameter_names_survive_generation": [
+    {
+      "offset": 252,
+      "name": "regions"
+    }
+  ],
   "M:FluentSpecifications.Generator.IntegrationTests.GeneratedDslTests.Zero_argument_rules_compose_without_parentheses": [],
   "M:FluentSpecifications.Generators.Tests.GeneratorDiagnosticTests.Unsupported_rule_shapes_are_reported_instead_of_silently_disappearing": [
     {

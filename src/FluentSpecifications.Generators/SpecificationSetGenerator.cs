@@ -18,6 +18,11 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
 
     private const string ExposeAttribute = "FluentSpecifications.ExposeAttribute";
 
+    private static readonly SymbolDisplayFormat FullyQualifiedNullableFormat =
+        SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+            SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions |
+            SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+
     private static readonly DiagnosticDescriptor InvalidCatalog = new(
         id: "FSPEC001",
         title: "Invalid specification catalog",
@@ -25,7 +30,7 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
         category: "FluentSpecifications.Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        helpLinkUri: "https://github.com/fluent-specifications/fluent-specifications");
+        helpLinkUri: "https://github.com/DanMarshall909/fluent-specifications");
 
     private static readonly DiagnosticDescriptor ExposedMemberConflict = new(
         id: "FSPEC002",
@@ -34,7 +39,7 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
         category: "FluentSpecifications.Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        helpLinkUri: "https://github.com/fluent-specifications/fluent-specifications");
+        helpLinkUri: "https://github.com/DanMarshall909/fluent-specifications");
 
     private static readonly DiagnosticDescriptor UnsupportedLanguageVersion = new(
         id: "FSPEC003",
@@ -43,7 +48,7 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
         category: "FluentSpecifications.Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        helpLinkUri: "https://github.com/fluent-specifications/fluent-specifications");
+        helpLinkUri: "https://github.com/DanMarshall909/fluent-specifications");
 
     private static readonly DiagnosticDescriptor UnsupportedRuleDeclaration = new(
         id: "FSPEC004",
@@ -52,26 +57,77 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
         category: "FluentSpecifications.Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        helpLinkUri: "https://github.com/fluent-specifications/fluent-specifications");
+        helpLinkUri: "https://github.com/DanMarshall909/fluent-specifications");
+
+    private static readonly DiagnosticDescriptor MultipleSearchCatalogs = new(
+        id: "FSPEC005",
+        title: "Multiple inferred search catalogs",
+        messageFormat: "Candidate type '{0}' has multiple specification catalogs generating Order.Search; set GenerateSearch = false on all but one catalog",
+        category: "FluentSpecifications.Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: "https://github.com/DanMarshall909/fluent-specifications");
+
+    private static readonly DiagnosticDescriptor SearchEntryPointConflict = new(
+        id: "FSPEC006",
+        title: "Generated search entry point conflicts with an entity member",
+        messageFormat: "Cannot generate '{0}.{1}' because the candidate type already declares a member named '{1}'",
+        category: "FluentSpecifications.Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: "https://github.com/DanMarshall909/fluent-specifications");
+
+    private static readonly DiagnosticDescriptor SearchSupportMemberConflict = new(
+        id: "FSPEC007",
+        title: "Generated search support conflicts with a catalog member",
+        messageFormat: "Cannot generate search language for specification catalog '{0}' because it already declares a member named '{1}', which is reserved for generated search support",
+        category: "FluentSpecifications.Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: "https://github.com/DanMarshall909/fluent-specifications");
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var catalogs = context.SyntaxProvider.ForAttributeWithMetadataName(
             SpecificationSetAttribute,
             static (node, _) => node is ClassDeclarationSyntax,
-            static (attributeContext, _) => CreateCatalog(attributeContext));
+            static (attributeContext, _) => CreateCatalog(attributeContext))
+            .Where(static catalog => catalog is not null)
+            .Select(static (catalog, _) => catalog!);
 
         var languageVersions = context.ParseOptionsProvider.Select(static (options, _) =>
             options is CSharpParseOptions csharp
                 ? csharp.LanguageVersion
                 : LanguageVersion.CSharp14);
 
-        context.RegisterSourceOutput(catalogs.Combine(languageVersions), static (sourceContext, input) =>
+        context.RegisterSourceOutput(catalogs.Collect().Combine(languageVersions), static (sourceContext, input) =>
         {
-            var catalog = input.Left;
-            if (catalog is not null)
+            var duplicateCandidates = input.Left
+                .Where(static catalog => catalog.GenerateSearch)
+                .GroupBy(static catalog => catalog.CandidateType, StringComparer.Ordinal)
+                .Where(static group => group.Count() > 1)
+                .Select(static group => group.Key)
+                .ToImmutableHashSet(StringComparer.Ordinal);
+
+            foreach (var catalog in input.Left)
             {
-                Emit(sourceContext, catalog, input.Right);
+                var duplicate = duplicateCandidates.Contains(catalog.CandidateType);
+                if (duplicate && catalog.GenerateSearch)
+                {
+                    sourceContext.ReportDiagnostic(Diagnostic.Create(
+                        MultipleSearchCatalogs,
+                        catalog.Location,
+                        catalog.CandidateType));
+                }
+
+                Emit(
+                    sourceContext,
+                    catalog,
+                    input.Right,
+                    emitSearch: catalog.GenerateSearch &&
+                        !duplicate &&
+                        catalog.SearchConflicts.Length == 0 &&
+                        catalog.SearchSupportConflicts.Length == 0);
             }
         });
     }
@@ -86,6 +142,8 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
         }
 
         var candidate = attribute.TypeArguments[0];
+        var generateSearch = context.Attributes[0].NamedArguments.Any(static argument =>
+            argument.Key == "GenerateSearch" && argument.Value.Value is true);
         var isValid = catalog.IsStatic &&
             !catalog.IsGenericType &&
             catalog.ContainingType is null &&
@@ -93,6 +151,7 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
         var properties = ImmutableArray.CreateBuilder<RuleProperty>();
         var methods = ImmutableArray.CreateBuilder<RuleMethod>();
         var unsupported = ImmutableArray.CreateBuilder<UnsupportedRule>();
+        var fields = ImmutableArray.CreateBuilder<FieldModel>();
 
         foreach (var member in catalog.GetMembers())
         {
@@ -169,6 +228,50 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
             }
         }
 
+        foreach (var member in CandidateMembers(candidate))
+        {
+            if (member is IPropertySymbol property &&
+                !property.IsStatic &&
+                !property.IsIndexer &&
+                property.GetMethod?.DeclaredAccessibility == Accessibility.Public)
+            {
+                fields.Add(new FieldModel(
+                    property.Name,
+                    DisplayFieldType(property.Type)));
+            }
+            else if (member is IFieldSymbol field &&
+                     !field.IsStatic &&
+                     field.DeclaredAccessibility == Accessibility.Public)
+            {
+                fields.Add(new FieldModel(
+                    field.Name,
+                    DisplayFieldType(field.Type)));
+            }
+        }
+
+
+        var searchConflicts = generateSearch
+            ? CandidateMembers(candidate)
+                .Where(static member => member.Name is "Search" or "Rules" or "Fields")
+                .Select(static member => member.Name)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(static name => name, StringComparer.Ordinal)
+                .ToImmutableArray()
+            : ImmutableArray<string>.Empty;
+
+        var searchSupportConflicts = generateSearch
+            ? catalog.GetMembers()
+                .Where(static member => member.Name is
+                    "SearchRoot" or
+                    "RuleCatalog" or
+                    "SearchRuleCatalog" or
+                    "FieldCatalog")
+                .Select(static member => member.Name)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(static name => name, StringComparer.Ordinal)
+                .ToImmutableArray()
+            : ImmutableArray<string>.Empty;
+
         return new CatalogModel(
             catalog.Name,
             catalog.DeclaredAccessibility == Accessibility.Public ? "public" : "internal",
@@ -179,7 +282,11 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
             candidate.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             properties.ToImmutable(),
             methods.ToImmutable(),
+            fields.ToImmutable(),
             unsupported.ToImmutable(),
+            generateSearch,
+            searchConflicts,
+            searchSupportConflicts,
             isValid,
             catalog.Locations.FirstOrDefault());
     }
@@ -189,6 +296,23 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
             .Select(static reference => reference.GetSyntax())
             .OfType<ClassDeclarationSyntax>()
             .Any(static declaration => declaration.Modifiers.Any(SyntaxKind.PartialKeyword));
+
+    private static IEnumerable<ISymbol> CandidateMembers(ITypeSymbol candidate)
+    {
+        var seenNames = new HashSet<string>(StringComparer.Ordinal);
+        for (var current = candidate as INamedTypeSymbol;
+             current is not null;
+             current = current.BaseType)
+        {
+            foreach (var member in current.GetMembers())
+            {
+                if (seenNames.Add(member.Name))
+                {
+                    yield return member;
+                }
+            }
+        }
+    }
 
     private static bool IsSpecOf(ITypeSymbol type, ITypeSymbol candidate) =>
         type is INamedTypeSymbol named &&
@@ -202,6 +326,8 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
 
     private static ParameterModel CreateParameter(IParameterSymbol parameter) => new(
         parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+        parameter.Type.SpecialType == SpecialType.System_Object ||
+            parameter.Type.TypeKind == TypeKind.Dynamic,
         Escape(parameter.Name),
         parameter.RefKind switch
         {
@@ -220,10 +346,14 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
     private static string Escape(string identifier) =>
         SyntaxFacts.GetKeywordKind(identifier) != SyntaxKind.None ? $"@{identifier}" : identifier;
 
+    private static string DisplayFieldType(ITypeSymbol type)
+        => type.ToDisplayString(FullyQualifiedNullableFormat);
+
     private static void Emit(
         SourceProductionContext context,
         CatalogModel catalog,
-        LanguageVersion languageVersion)
+        LanguageVersion languageVersion,
+        bool emitSearch)
     {
         if (!catalog.IsValid)
         {
@@ -261,6 +391,25 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
                 rule.Reason));
         }
 
+
+        foreach (var conflict in catalog.SearchConflicts)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                SearchEntryPointConflict,
+                catalog.Location,
+                catalog.CandidateType,
+                conflict));
+        }
+
+        foreach (var conflict in catalog.SearchSupportConflicts)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                SearchSupportMemberConflict,
+                catalog.Location,
+                catalog.Name,
+                conflict));
+        }
+
         var source = new StringBuilder();
         source.AppendLine("// <auto-generated />");
         source.AppendLine("#nullable enable");
@@ -290,9 +439,34 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
                 .AppendLine(");");
         }
 
-        if (catalog.Properties.Length > 0)
+        if (emitSearch)
+        {
+            foreach (var field in catalog.Fields)
+            {
+                source.Append("    private static readonly global::FluentSpecifications.SearchField<")
+                    .Append(catalog.CandidateType)
+                    .Append("> ")
+                    .Append(CacheFieldName(field))
+                    .Append(" = global::FluentSpecifications.SearchField.Define<")
+                    .Append(catalog.CandidateType)
+                    .Append(", ")
+                    .Append(field.Type)
+                    .Append(">(")
+                    .Append(SymbolDisplay.FormatLiteral(field.Name, quote: true))
+                    .Append(", candidate => candidate.")
+                    .Append(Escape(field.Name))
+                    .AppendLine(");");
+            }
+        }
+
+        if (catalog.Properties.Length > 0 || (emitSearch && catalog.Fields.Length > 0))
         {
             source.AppendLine();
+        }
+
+        if (emitSearch)
+        {
+            EmitCatalogTypes(source, catalog);
         }
 
         if (catalog.Properties.Length > 0 || catalog.Methods.Length > 0)
@@ -332,18 +506,69 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
             }
 
             source.AppendLine("    }");
+
+            if (emitSearch)
+            {
+                source.AppendLine();
+                source.Append("    extension(global::FluentSpecifications.SearchRuleConnector<")
+                    .Append(catalog.CandidateType)
+                    .AppendLine("> connector)");
+                source.AppendLine("    {");
+
+                foreach (var property in catalog.Properties)
+                {
+                    source.Append("        public global::FluentSpecifications.UnsortedSearch<")
+                        .Append(catalog.CandidateType)
+                        .Append("> ")
+                        .Append(Escape(property.Name))
+                        .Append(" => connector(")
+                        .Append(CacheFieldName(property))
+                        .AppendLine(".Value);");
+                }
+
+                foreach (var method in catalog.Methods)
+                {
+                    source.Append("        public global::FluentSpecifications.UnsortedSearch<")
+                        .Append(catalog.CandidateType)
+                        .Append("> ")
+                        .Append(Escape(method.Name))
+                        .Append('(')
+                        .Append(string.Join(", ", method.Parameters.Select(ParameterDeclaration)))
+                        .Append(") => connector(")
+                        .Append(catalog.QualifiedName)
+                        .Append('.')
+                        .Append(Escape(method.Name))
+                        .Append('(')
+                        .Append(string.Join(", ", method.Parameters.Select(ParameterArgument)))
+                        .AppendLine("));");
+                }
+
+                source.AppendLine("    }");
+            }
+        }
+
+        if (emitSearch)
+        {
+            EmitFieldSelectorExtensions(source, catalog);
         }
 
         var exposed = catalog.Properties
             .Where(static property => property.Exposed && !property.Conflicts)
             .ToArray();
-        if (exposed.Length > 0)
+
+        if (emitSearch || exposed.Length > 0)
         {
             source.AppendLine();
             source.Append("    extension(")
                 .Append(catalog.CandidateType)
                 .AppendLine(" candidate)");
             source.AppendLine("    {");
+            if (emitSearch)
+            {
+                source.AppendLine("        public static SearchRoot Search => default;");
+                source.AppendLine("        public static RuleCatalog Rules => default;");
+                source.AppendLine("        public static FieldCatalog Fields => default;");
+            }
 
             foreach (var property in exposed)
             {
@@ -375,6 +600,199 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
     private static string CacheFieldName(RuleProperty property) =>
         $"__FluentSpecifications_Cached_{property.Name}";
 
+    private static string CacheFieldName(FieldModel field) =>
+        $"__FluentSpecifications_Field_{Sanitize(field.Name)}";
+
+    private static void EmitCatalogTypes(StringBuilder source, CatalogModel catalog)
+    {
+        source.AppendLine("    public readonly struct SearchRoot");
+        source.AppendLine("    {");
+        source.AppendLine("        public SearchRuleCatalog Matching => default;");
+        source.Append("        public global::FluentSpecifications.UnsortedSearch<")
+            .Append(catalog.CandidateType)
+            .Append("> For(global::FluentSpecifications.Spec<")
+            .Append(catalog.CandidateType)
+            .Append("> specification) => global::FluentSpecifications.Search.Matching(specification);")
+            .AppendLine();
+        source.Append("        public global::FluentSpecifications.UnsortedSearch<")
+            .Append(catalog.CandidateType)
+            .Append("> All => global::FluentSpecifications.Search.All<")
+            .Append(catalog.CandidateType)
+            .AppendLine(">();");
+        source.AppendLine("    }");
+        source.AppendLine();
+
+        source.AppendLine("    public readonly struct RuleCatalog");
+        source.AppendLine("    {");
+        EmitRuleCatalogMembers(source, catalog, "global::FluentSpecifications.Spec", false);
+        source.AppendLine("    }");
+        source.AppendLine();
+
+        source.AppendLine("    public readonly struct SearchRuleCatalog");
+        source.AppendLine("    {");
+        EmitRuleCatalogMembers(
+            source,
+            catalog,
+            "global::FluentSpecifications.UnsortedSearch",
+            true);
+        source.AppendLine("    }");
+        source.AppendLine();
+
+        source.AppendLine("    public readonly struct FieldCatalog");
+        source.AppendLine("    {");
+        foreach (var field in catalog.Fields)
+        {
+            source.Append(HidesObjectProperty(field.Name)
+                    ? "        public new global::FluentSpecifications.SearchField<"
+                    : "        public global::FluentSpecifications.SearchField<")
+                .Append(catalog.CandidateType)
+                .Append("> ")
+                .Append(Escape(field.Name))
+                .Append(" => ")
+                .Append(CacheFieldName(field))
+                .AppendLine(";");
+        }
+
+        source.AppendLine("    }");
+        source.AppendLine();
+    }
+
+    private static bool HidesObjectProperty(string name) =>
+        name is "Equals" or
+            "GetHashCode" or
+            "GetType" or
+            "MemberwiseClone" or
+            "ReferenceEquals" or
+            "ToString";
+
+    private static bool HidesObjectMethod(RuleMethod method)
+    {
+        if (method.Parameters.Any(static parameter => parameter.RefPrefix.Length > 0))
+        {
+            return false;
+        }
+
+        return method.Name switch
+        {
+            "Equals" => HasObjectParameters(method, 1) || HasObjectParameters(method, 2),
+            "ReferenceEquals" => HasObjectParameters(method, 2),
+            "GetHashCode" or "GetType" or "MemberwiseClone" or "ToString" =>
+                method.Parameters.Length == 0,
+            _ => false
+        };
+    }
+
+    private static bool HasObjectParameters(RuleMethod method, int count) =>
+        method.Parameters.Length == count &&
+        method.Parameters.All(static parameter => parameter.IsObjectSignatureType);
+
+    private static void EmitRuleCatalogMembers(
+        StringBuilder source,
+        CatalogModel catalog,
+        string resultType,
+        bool createsSearch)
+    {
+        foreach (var property in catalog.Properties)
+        {
+            source.Append(HidesObjectProperty(property.Name)
+                    ? "        public new "
+                    : "        public ")
+                .Append(resultType)
+                .Append('<')
+                .Append(catalog.CandidateType)
+                .Append("> ")
+                .Append(Escape(property.Name))
+                .Append(" => ");
+            if (createsSearch)
+            {
+                source.Append("global::FluentSpecifications.Search.Matching(");
+            }
+
+            source.Append(CacheFieldName(property)).Append(".Value");
+            if (createsSearch)
+            {
+                source.Append(')');
+            }
+
+            source.AppendLine(";");
+        }
+
+        foreach (var method in catalog.Methods)
+        {
+            source.Append(HidesObjectMethod(method)
+                    ? "        public new "
+                    : "        public ")
+                .Append(resultType)
+                .Append('<')
+                .Append(catalog.CandidateType)
+                .Append("> ")
+                .Append(Escape(method.Name))
+                .Append('(')
+                .Append(string.Join(", ", method.Parameters.Select(ParameterDeclaration)))
+                .Append(") => ");
+            if (createsSearch)
+            {
+                source.Append("global::FluentSpecifications.Search.Matching(");
+            }
+
+            source.Append(catalog.QualifiedName)
+                .Append('.')
+                .Append(Escape(method.Name))
+                .Append('(')
+                .Append(string.Join(", ", method.Parameters.Select(ParameterArgument)))
+                .Append(')');
+            if (createsSearch)
+            {
+                source.Append(')');
+            }
+
+            source.AppendLine(";");
+        }
+    }
+
+    private static void EmitFieldSelectorExtensions(StringBuilder source, CatalogModel catalog)
+    {
+        if (catalog.Fields.Length == 0)
+        {
+            return;
+        }
+
+        source.AppendLine();
+        source.Append("    extension(global::FluentSpecifications.PrimaryFieldSelector<")
+            .Append(catalog.CandidateType)
+            .AppendLine("> selector)");
+        source.AppendLine("    {");
+        foreach (var field in catalog.Fields)
+        {
+            source.Append("        public global::FluentSpecifications.PrimaryDirectionSelector<")
+                .Append(catalog.CandidateType)
+                .Append("> ")
+                .Append(Escape(field.Name))
+                .Append(" => selector[")
+                .Append(CacheFieldName(field))
+                .AppendLine("];");
+        }
+
+        source.AppendLine("    }");
+        source.AppendLine();
+        source.Append("    extension(global::FluentSpecifications.SecondaryFieldSelector<")
+            .Append(catalog.CandidateType)
+            .AppendLine("> selector)");
+        source.AppendLine("    {");
+        foreach (var field in catalog.Fields)
+        {
+            source.Append("        public global::FluentSpecifications.SecondaryDirectionSelector<")
+                .Append(catalog.CandidateType)
+                .Append("> ")
+                .Append(Escape(field.Name))
+                .Append(" => selector[")
+                .Append(CacheFieldName(field))
+                .AppendLine("];");
+        }
+
+        source.AppendLine("    }");
+    }
+
     private static string Sanitize(string value)
     {
         var builder = new StringBuilder(value.Length);
@@ -396,7 +814,11 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
             string candidateType,
             ImmutableArray<RuleProperty> properties,
             ImmutableArray<RuleMethod> methods,
+            ImmutableArray<FieldModel> fields,
             ImmutableArray<UnsupportedRule> unsupportedRules,
+            bool generateSearch,
+            ImmutableArray<string> searchConflicts,
+            ImmutableArray<string> searchSupportConflicts,
             bool isValid,
             Location? location)
         {
@@ -407,7 +829,11 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
             CandidateType = candidateType;
             Properties = properties;
             Methods = methods;
+            Fields = fields;
             UnsupportedRules = unsupportedRules;
+            GenerateSearch = generateSearch;
+            SearchConflicts = searchConflicts;
+            SearchSupportConflicts = searchSupportConflicts;
             IsValid = isValid;
             Location = location;
         }
@@ -426,11 +852,32 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
 
         public ImmutableArray<RuleMethod> Methods { get; }
 
+        public ImmutableArray<FieldModel> Fields { get; }
+
         public ImmutableArray<UnsupportedRule> UnsupportedRules { get; }
+
+        public bool GenerateSearch { get; }
+
+        public ImmutableArray<string> SearchConflicts { get; }
+
+        public ImmutableArray<string> SearchSupportConflicts { get; }
 
         public bool IsValid { get; }
 
         public Location? Location { get; }
+    }
+
+    private sealed class FieldModel
+    {
+        public FieldModel(string name, string type)
+        {
+            Name = name;
+            Type = type;
+        }
+
+        public string Name { get; }
+
+        public string Type { get; }
     }
 
     private sealed class RuleProperty
@@ -469,12 +916,14 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
     {
         public ParameterModel(
             string type,
+            bool isObjectSignatureType,
             string name,
             string refPrefix,
             bool isParams,
             string? defaultValue)
         {
             Type = type;
+            IsObjectSignatureType = isObjectSignatureType;
             Name = name;
             RefPrefix = refPrefix;
             IsParams = isParams;
@@ -482,6 +931,8 @@ public sealed class SpecificationSetGenerator : IIncrementalGenerator
         }
 
         public string Type { get; }
+
+        public bool IsObjectSignatureType { get; }
 
         public string Name { get; }
 
