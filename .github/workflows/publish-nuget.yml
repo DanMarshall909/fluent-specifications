@@ -11,7 +11,7 @@ concurrency:
 
 env:
   VERSION_PREFIX: '1.0'
-  BASE_COMMIT_COUNT: 3
+  BASE_COMMIT_COUNT: 4
 
 jobs:
   publish:
@@ -20,6 +20,7 @@ jobs:
     environment: nuget.org
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -51,14 +52,13 @@ jobs:
       - name: Pack ${{ steps.package-version.outputs.version }}
         run: dotnet pack src/FluentSpecifications.Core/FluentSpecifications.Core.csproj --configuration Release --no-restore --output artifacts/packages -p:PackageVersion=${{ steps.package-version.outputs.version }}
 
+      - name: Authenticate to NuGet.org with trusted publishing
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
       - name: Publish ${{ steps.package-version.outputs.version }} to NuGet.org
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-          NUGET_SYMBOL_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
-          if [ -z "$NUGET_API_KEY" ]; then
-            echo "::error::The nuget.org environment needs a NUGET_API_KEY secret."
-            exit 1
-          fi
-          dotnet nuget push artifacts/packages/DanMarshall.FluentSpecifications.${{ steps.package-version.outputs.version }}.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate
-          dotnet nuget push artifacts/packages/DanMarshall.FluentSpecifications.${{ steps.package-version.outputs.version }}.snupkg --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push artifacts/packages/DanMarshall.FluentSpecifications.${{ steps.package-version.outputs.version }}.nupkg --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push artifacts/packages/DanMarshall.FluentSpecifications.${{ steps.package-version.outputs.version }}.snupkg --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

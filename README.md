@@ -169,3 +169,7 @@ custom-domain artifacts, and internal links.
 begin at 1.0.0, and each push to `main` receives the next patch version. The
 checked-in [SPECIFICATION.md](SPECIFICATION.md), package-consumer tests, and
 executable conformance suites define its version-one contract.
+
+NuGet releases use Trusted Publishing. GitHub exchanges a short-lived OIDC
+identity for a temporary NuGet.org credential immediately before publication;
+the repository stores no long-lived publishing API key.

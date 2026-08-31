@@ -66,6 +66,10 @@ The package uses only the .NET and Roslyn platform supplied by Microsoft.
 The expression and EF Core projects remain separate infrastructure adapters;
 they are not transitive dependencies of the starter package.
 
+Releases use NuGet.org Trusted Publishing through GitHub Actions. The publisher
+requests a short-lived OIDC credential immediately before pushing the package,
+so no long-lived NuGet API key is stored in the repository or its CI settings.
+
 ## Failure types
 
 | Type | Meaning |

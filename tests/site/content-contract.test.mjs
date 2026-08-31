@@ -95,25 +95,32 @@ test('custom-domain and deployment configuration follow the blog convention', ()
   assert.match(workflow, /npm test/);
   assert.match(workflow, /dotnet pack/);
   assert.match(workflow, /actions\/upload-artifact@v4/);
+  assert.match(workflow, /BASE_COMMIT_COUNT:\s*4/);
   assert.match(workflow, /peaceiris\/actions-gh-pages@v4/);
   assert.match(workflow, /destination_dir:\s*\.\/docs/);
   assert.match(workflow, /force_orphan:\s*true/);
 });
 
-test('NuGet publication starts at 1.0.0, increments patches, and is credential-gated', () => {
+test('NuGet publication starts at 1.0.0 and uses trusted publishing', () => {
   const workflow = read('.github/workflows/publish-nuget.yml');
+  const readme = read('README.md');
 
   assert.match(workflow, /push:\s*\r?\n\s+branches:\s*\[main\]/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /if:\s*vars\.NUGET_PUBLISH_ENABLED == 'true'/);
-  assert.match(workflow, /NUGET_API_KEY:\s*\$\{\{ secrets\.NUGET_API_KEY \}\}/);
+  assert.match(workflow, /id-token:\s*write/);
+  assert.match(workflow, /uses:\s*NuGet\/login@v1/);
+  assert.match(workflow, /user:\s*\$\{\{ vars\.NUGET_USER \}\}/);
+  assert.match(workflow, /steps\.nuget-login\.outputs\.NUGET_API_KEY/);
   assert.match(workflow, /VERSION_PREFIX:\s*'1\.0'/);
-  assert.match(workflow, /BASE_COMMIT_COUNT:\s*3/);
+  assert.match(workflow, /BASE_COMMIT_COUNT:\s*4/);
   assert.match(workflow, /git rev-list --first-parent --count HEAD/);
   assert.match(workflow, /-p:PackageVersion=\$\{\{ steps\.package-version\.outputs\.version \}\}/);
   assert.match(workflow, /https:\/\/api\.nuget\.org\/v3\/index\.json/);
   assert.match(workflow, /--skip-duplicate/);
-  assert.doesNotMatch(workflow, /--api-key/);
+  assert.doesNotMatch(workflow, /secrets\.NUGET_API_KEY/);
+  assert.match(readme, /Trusted Publishing/);
+  assert.match(readme, /short-lived OIDC/);
 });
 
 test('the homepage and documentation shell have deliberate responsive fallbacks', () => {
