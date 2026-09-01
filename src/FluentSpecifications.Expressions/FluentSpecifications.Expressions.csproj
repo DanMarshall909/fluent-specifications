@@ -3,9 +3,31 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>FluentSpecifications.Expressions</RootNamespace>
     <AssemblyName>FluentSpecifications.Expressions</AssemblyName>
+    <IsPackable>true</IsPackable>
+    <PackageId>DanMarshall.FluentSpecifications.Expressions</PackageId>
+    <Version>1.2.0</Version>
+    <Title>Fluent Specifications expression translation</Title>
+    <Authors>Dan Marshall</Authors>
+    <Description>Optional expression-tree translation for providers built on Fluent Specifications.</Description>
+    <PackageTags>specification;expressions;linq;provider;csharp</PackageTags>
+    <PackageProjectUrl>https://fluent-specifications.danmarshall.dev/docs/reference/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DanMarshall909/fluent-specifications</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Publishes the parameter-rebound expression translator used by provider integrations.</PackageReleaseNotes>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../FluentSpecifications.Core/FluentSpecifications.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

@@ -3,9 +3,31 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>FluentSpecifications</RootNamespace>
     <AssemblyName>FluentSpecifications.Repositories</AssemblyName>
+    <IsPackable>true</IsPackable>
+    <PackageId>DanMarshall.FluentSpecifications.Repositories</PackageId>
+    <Version>1.2.0</Version>
+    <Title>Fluent Specifications repository contracts</Title>
+    <Authors>Dan Marshall</Authors>
+    <Description>Optional provider-neutral, materializing read repository contracts for Fluent Specifications.</Description>
+    <PackageTags>specification;repository;domain-driven-design;ddd;csharp</PackageTags>
+    <PackageProjectUrl>https://fluent-specifications.danmarshall.dev/docs/repositories/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DanMarshall909/fluent-specifications</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Introduces the provider-neutral IReadRepository&lt;T&gt; contract for materialized specification and search results.</PackageReleaseNotes>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../FluentSpecifications.Core/FluentSpecifications.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

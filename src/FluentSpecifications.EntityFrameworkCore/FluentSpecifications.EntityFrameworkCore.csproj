@@ -3,6 +3,24 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>FluentSpecifications.EntityFrameworkCore</RootNamespace>
     <AssemblyName>FluentSpecifications.EntityFrameworkCore</AssemblyName>
+    <IsPackable>true</IsPackable>
+    <PackageId>DanMarshall.FluentSpecifications.EntityFrameworkCore</PackageId>
+    <Version>1.2.0</Version>
+    <Title>Fluent Specifications for Entity Framework Core</Title>
+    <Authors>Dan Marshall</Authors>
+    <Description>Optional Entity Framework Core translation and provider-neutral repository implementation for Fluent Specifications.</Description>
+    <PackageTags>specification;entity-framework-core;ef-core;repository;csharp</PackageTags>
+    <PackageProjectUrl>https://fluent-specifications.danmarshall.dev/docs/ef-core/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DanMarshall909/fluent-specifications</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Adds EntityFrameworkRepository&lt;T&gt; as an optional EF Core implementation of the provider-neutral repository contract.</PackageReleaseNotes>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,5 +31,9 @@
     <ProjectReference Include="../FluentSpecifications.Core/FluentSpecifications.Core.csproj" />
     <ProjectReference Include="../FluentSpecifications.Expressions/FluentSpecifications.Expressions.csproj" />
     <ProjectReference Include="../FluentSpecifications.Repositories/FluentSpecifications.Repositories.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

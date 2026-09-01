@@ -54,13 +54,14 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Pack the public NuGet artifacts
-        run: dotnet pack src/FluentSpecifications.Core/FluentSpecifications.Core.csproj --configuration Release --no-restore --output artifacts/packages
+      - name: Pack the public NuGet package suite
+        shell: pwsh
+        run: ./eng/Pack-PackageSuite.ps1 -Configuration Release -OutputPath artifacts/packages -NoRestore
 
       - name: Retain the verified NuGet artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: DanMarshall.FluentSpecifications-${{ steps.package-version.outputs.version }}
+          name: FluentSpecifications-package-suite-${{ steps.package-version.outputs.version }}
           path: |
             artifacts/packages/*.nupkg
             artifacts/packages/*.snupkg

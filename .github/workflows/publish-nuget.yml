@@ -1,9 +1,12 @@
-name: Publish NuGet package
+name: Publish NuGet package suite
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: Stable package-suite version to publish
+        required: true
+        type: string
 
 concurrency:
   group: publish-nuget-${{ github.ref }}
@@ -11,7 +14,7 @@ concurrency:
 
 jobs:
   publish:
-    if: vars.NUGET_PUBLISH_ENABLED == 'true'
+    if: vars.NUGET_PUBLISH_ENABLED == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: nuget.org
     permissions:
@@ -42,14 +45,24 @@ jobs:
             echo "::error::The Core project PackageVersion '$version' is not a stable semantic version."
             exit 1
           fi
+          if [[ "$version" != "${{ inputs.release_version }}" ]]; then
+            echo "::error::Requested release '${{ inputs.release_version }}' does not match project version '$version'."
+            exit 1
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Verify the semantic version is next
+      - name: Verify every package version is publishable
         shell: pwsh
-        run: ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications' -CandidateVersion '${{ steps.package-version.outputs.version }}'
+        run: |
+          $version = '${{ steps.package-version.outputs.version }}'
+          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications' -CandidateVersion $version -AllowAlreadyPublished
+          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications.Repositories' -CandidateVersion $version -FirstStableVersion $version -AllowAlreadyPublished
+          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications.Expressions' -CandidateVersion $version -FirstStableVersion $version -AllowAlreadyPublished
+          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications.EntityFrameworkCore' -CandidateVersion $version -FirstStableVersion $version -AllowAlreadyPublished
 
-      - name: Pack ${{ steps.package-version.outputs.version }}
-        run: dotnet pack src/FluentSpecifications.Core/FluentSpecifications.Core.csproj --configuration Release --no-restore --output artifacts/packages
+      - name: Pack package suite ${{ steps.package-version.outputs.version }}
+        shell: pwsh
+        run: ./eng/Pack-PackageSuite.ps1 -Configuration Release -OutputPath artifacts/packages -NoRestore
 
       - name: Authenticate to NuGet.org with trusted publishing
         id: nuget-login
@@ -57,6 +70,15 @@ jobs:
         with:
           user: ${{ vars.NUGET_USER }}
 
-      - name: Publish ${{ steps.package-version.outputs.version }} to NuGet.org
+      - name: Publish package suite ${{ steps.package-version.outputs.version }} to NuGet.org
+        shell: bash
         run: |
-          dotnet nuget push artifacts/packages/DanMarshall.FluentSpecifications.${{ steps.package-version.outputs.version }}.nupkg --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          version='${{ steps.package-version.outputs.version }}'
+          for package_id in \
+            DanMarshall.FluentSpecifications \
+            DanMarshall.FluentSpecifications.Repositories \
+            DanMarshall.FluentSpecifications.Expressions \
+            DanMarshall.FluentSpecifications.EntityFrameworkCore
+          do
+            dotnet nuget push "artifacts/packages/${package_id}.${version}.nupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done

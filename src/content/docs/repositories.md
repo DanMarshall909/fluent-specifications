@@ -16,24 +16,25 @@ infrastructure concerns.
 
 ## Availability
 
-The repository contract currently lives in the separate
-`FluentSpecifications.Repositories` source project. It depends only on
-`FluentSpecifications.Core`; Core does not depend on it. The published
-`DanMarshall.FluentSpecifications` starter package does not transitively include
-the repository, expression, or EF Core projects.
+The repository contract is published separately from the starter package,
+beginning with the coordinated 1.2.0 package suite:
 
-When consuming the current source tree, reference the repository project from
-the application project that owns the read boundary:
-
-```xml
-<ItemGroup>
-  <ProjectReference Include="path/to/FluentSpecifications.Repositories.csproj" />
-</ItemGroup>
+```shell
+dotnet add package DanMarshall.FluentSpecifications.Repositories --version 1.2.0
 ```
 
-The contract uses the root `FluentSpecifications` namespace. A standalone
-package installation command should only be added here after that package is
-published.
+`DanMarshall.FluentSpecifications.Repositories` depends only on
+`DanMarshall.FluentSpecifications`; the starter package does not transitively
+include the repository, expression, or EF Core extensions. This keeps a domain
+model that only needs `Spec<T>` free of persistence abstractions.
+
+The dependency supplies the core runtime. Add the starter package directly when
+the consuming project also needs its source generator; analyzer assets do not
+flow transitively through an extension package.
+
+The contract uses the root `FluentSpecifications` namespace. Contributors
+working inside this repository can use the matching
+`FluentSpecifications.Repositories` project reference instead of the package.
 
 ## Use the generic contract directly or specialize it
 

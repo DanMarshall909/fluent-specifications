@@ -1007,6 +1007,14 @@ The intended package split is:
 repository extension depends only on `Core`; provider adapters depend inward on
 the repository contract and `Core`.
 
+The public package IDs mirror those project boundaries under the
+`DanMarshall.FluentSpecifications` prefix. Packable projects MUST share one
+coordinated release version, and packaging MUST fail if their effective
+`PackageVersion` values diverge. The starter package MUST NOT gain repository,
+expression, or EF Core dependencies. The EF Core package MUST express those
+extensions and `Microsoft.EntityFrameworkCore.Relational` as package
+dependencies rather than bundling their assemblies.
+
 ## 21. Testing requirements
 
 ### 21.1 Core law tests

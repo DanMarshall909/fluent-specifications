@@ -19,6 +19,27 @@ One package installs the `Spec<T>` and provider-neutral search runtime plus the
 source generator that produces fluent rules plus opt-in fields, search phrases,
 and domain properties such as `order.CanShip`.
 
+Version 1.2.0 adds optional packages without making them dependencies of the
+starter package. Install the generic read boundary when application code should
+depend on a provider-neutral repository:
+
+```shell
+dotnet add package DanMarshall.FluentSpecifications.Repositories --version 1.2.0
+```
+
+For an EF Core implementation, reference the starter package directly so its
+source generator runs, then add the infrastructure package:
+
+```shell
+dotnet add package DanMarshall.FluentSpecifications --version 1.2.0
+dotnet add package DanMarshall.FluentSpecifications.EntityFrameworkCore --version 1.2.0
+```
+
+The EF package brings the repository contract and expression translator as
+normal package dependencies. Custom provider authors can reference
+`DanMarshall.FluentSpecifications.Expressions` directly when they need the
+parameter-rebound expression plan without EF Core.
+
 ### Zero third-party package dependencies
 
 The package has **zero third-party package dependencies**. Its NuGet dependency
@@ -183,14 +204,20 @@ snippet freshness, Markdown contracts, the production Astro build, metadata,
 custom-domain artifacts, and internal links.
 
 `DanMarshall.FluentSpecifications` 1.x is the public starter package. Releases
-begin at 1.0.0. The next release is selected manually with the Core project's
-`Version`; CI reads its exact effective `PackageVersion` rather than deriving a
-version from Git history. The publisher checks the selected version against
-NuGet.org before packing or requesting credentials. It accepts only the
-immediate next patch, minor, or major SemVer transition, so an unchanged
-version, duplicate, or gap fails before Trusted Publishing authentication. The
-checked-in [SPECIFICATION.md](SPECIFICATION.md), package-consumer tests, and
-executable conformance suites define its version-one contract.
+begin at 1.0.0; the repository, expressions, and EF Core packages join the
+coordinated suite at 1.2.0. Maintainers select the next version explicitly in
+each packable project, and the pack script rejects a mismatch before producing
+artifacts. CI reads the exact effective `PackageVersion` rather than deriving a
+version from Git history.
+
+NuGet publication is a manual workflow with an explicit requested version. The
+publisher checks every package ID against NuGet.org before packing or requesting
+credentials. Existing package lines accept only the immediate next patch,
+minor, or major SemVer transition; a new extension may begin at the current
+coordinated suite version. Idempotent retries are permitted because a
+multi-package release can be interrupted after publishing only some artifacts.
+The checked-in [SPECIFICATION.md](SPECIFICATION.md), isolated package-consumer
+tests, and executable conformance suites define the contract.
 
 NuGet releases use Trusted Publishing. GitHub exchanges a short-lived OIDC
 identity for a temporary NuGet.org credential immediately before publication;

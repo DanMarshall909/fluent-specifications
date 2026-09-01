@@ -13,7 +13,16 @@ not receive deferred queries, provider expressions, or EF configuration.
 
 The [repository extension guide](/docs/repositories/) defines the
 provider-neutral `IReadRepository<T>` contract and its materialization
-semantics. EF Core supplies one implementation for mapped reference types:
+semantics. Install the starter directly for its source generator and add the EF
+infrastructure package; the latter brings the repository and expression
+extensions transitively:
+
+```shell
+dotnet add package DanMarshall.FluentSpecifications --version 1.2.0
+dotnet add package DanMarshall.FluentSpecifications.EntityFrameworkCore --version 1.2.0
+```
+
+EF Core then supplies one implementation for mapped reference types:
 
 ```csharp symbol="M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Repository_example_executes_the_same_rule_in_sqlite"
 [Fact]

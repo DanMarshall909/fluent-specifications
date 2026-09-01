@@ -67,29 +67,38 @@ Dependencies point inward. Core has no reference to the repository contract or
 a provider adapter. The repository contract depends only on Core; EF Core
 depends on that contract and supplies one implementation.
 
-## NuGet package
+## NuGet packages
 
-The 1.x line is packaged as `DanMarshall.FluentSpecifications`, beginning at
-1.0.0. Maintainers select the next SemVer explicitly with the Core project's
-`Version`; CI reads its exact effective `PackageVersion` instead of deriving one
-from Git history. The package combines the core runtime with the source
-generator so the normal install is one package reference. Its NuGet dependency
-list is empty: there are **zero third-party package dependencies**, and no
-Microsoft runtime or compiler DLLs are bundled. The package uses only the .NET
-and Roslyn platform supplied by Microsoft.
+The 1.2.0 suite publishes four coordinated packages:
 
-Before packing or requesting a publishing credential, CI compares the selected
-version with NuGet.org. Only the immediate next patch, minor, or major SemVer
-transition is accepted; unchanged versions, duplicates, gaps, and
-prerelease-shaped versions fail the release.
+| Package | Contents | Direct package dependencies |
+| --- | --- | --- |
+| `DanMarshall.FluentSpecifications` | Core runtime and source generator | None |
+| `DanMarshall.FluentSpecifications.Repositories` | Provider-neutral `IReadRepository<T>` contract | Starter package |
+| `DanMarshall.FluentSpecifications.Expressions` | Parameter-rebound expression translator | Starter package |
+| `DanMarshall.FluentSpecifications.EntityFrameworkCore` | Relational executor and repository implementation | Starter, repository, expressions, and EF Core Relational |
 
-The repository contract, expression adapter, and EF Core implementation remain
-separate extensions; they are not transitive dependencies of the starter
-package.
+The starter package began at 1.0.0 and retains **zero third-party package
+dependencies**. The optional extensions join at 1.2.0 and do not become
+transitive dependencies of the starter. Installing the EF package brings the
+repository and expression assemblies plus Microsoft's relational EF runtime;
+install the starter directly as well when its source generator is required.
 
-Releases use NuGet.org Trusted Publishing through GitHub Actions. The publisher
-requests a short-lived OIDC credential immediately before pushing the package,
-so no long-lived NuGet API key is stored in the repository or its CI settings.
+Maintainers select one coordinated SemVer explicitly in every packable project.
+The package-suite script reads each effective `PackageVersion`, rejects any
+mismatch, and produces all `.nupkg` and `.snupkg` artifacts together. Existing
+package lines accept only the immediate next patch, minor, or major transition;
+a new extension may begin at the current suite version.
+
+Publication is an explicitly dispatched GitHub Actions workflow whose requested
+version must match the projects. Before requesting a credential, it compares
+every package ID with NuGet.org. Idempotent retries allow recovery from a
+partially completed suite publication, while NuGet's immutable package versions
+still prevent an artifact from being replaced.
+
+Releases use NuGet.org Trusted Publishing. The publisher requests a short-lived
+OIDC credential immediately before pushing the packages, so no long-lived NuGet
+API key is stored in the repository or its CI settings.
 
 ## Failure types
 
@@ -146,7 +155,7 @@ materializing read surface already represented by specifications and searches.
 
 ## Current status
 
-The repository targets C# 14 and .NET 10. `DanMarshall.FluentSpecifications`
-1.1.0 adds opt-in, provider-neutral search shaping to the 1.0.0 starter
-package; the checked-in specification and executable tests define its
-behavioral contract.
+The repository targets C# 14 and .NET 10. The coordinated 1.2.0 suite keeps the
+starter dependency-free while making the repository contract, expression
+translator, and EF Core implementation independently installable. The
+checked-in specification and executable tests define its behavioral contract.

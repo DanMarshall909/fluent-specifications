@@ -88,7 +88,7 @@ test('the repository guide documents a provider-neutral materialized boundary', 
 
   assert.match(guide, /IReadRepository<T>/);
   assert.match(guide, /EntityFrameworkRepository<T>/);
-  assert.match(guide, /does not transitively include/);
+  assert.match(guide, /does not transitively\s+include/);
   assert.match(guide, /must not expose `IQueryable`/);
   assert.match(guide, /AnyAsync\(Search<T>\).*CountAsync\(Search<T>\)/s);
   assert.match(guide, /M:FluentSpecifications\.Repositories\.Tests\.RepositoryContractTests/);
@@ -120,7 +120,7 @@ test('custom-domain and deployment configuration follow the blog convention', ()
   assert.match(workflow, /dotnet test/);
   assert.match(workflow, /npm ci/);
   assert.match(workflow, /npm test/);
-  assert.match(workflow, /dotnet pack/);
+  assert.match(workflow, /Pack-PackageSuite\.ps1/);
   assert.match(workflow, /actions\/upload-artifact@v4/);
   assert.match(workflow, /-getProperty:PackageVersion/);
   assert.match(workflow, /peaceiris\/actions-gh-pages@v4/);
@@ -131,20 +131,39 @@ test('custom-domain and deployment configuration follow the blog convention', ()
 test('NuGet publication uses the manually selected project version and trusted publishing', () => {
   const workflow = read('.github/workflows/publish-nuget.yml');
   const readme = read('README.md');
-  const project = read('src/FluentSpecifications.Core/FluentSpecifications.Core.csproj');
+  const packageProjects = [
+    ['src/FluentSpecifications.Core/FluentSpecifications.Core.csproj', 'DanMarshall.FluentSpecifications'],
+    ['src/FluentSpecifications.Repositories/FluentSpecifications.Repositories.csproj', 'DanMarshall.FluentSpecifications.Repositories'],
+    ['src/FluentSpecifications.Expressions/FluentSpecifications.Expressions.csproj', 'DanMarshall.FluentSpecifications.Expressions'],
+    ['src/FluentSpecifications.EntityFrameworkCore/FluentSpecifications.EntityFrameworkCore.csproj', 'DanMarshall.FluentSpecifications.EntityFrameworkCore'],
+  ];
   const publicBaseline = read(
     'tests/FluentSpecifications.NuGet.Tests/FluentSpecifications.NuGet.Tests.csproj',
   );
 
-  assert.match(workflow, /push:\s*\r?\n\s+branches:\s*\[main\]/);
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /release_version:/);
+  assert.doesNotMatch(workflow, /\n\s+push:/);
   assert.match(workflow, /if:\s*vars\.NUGET_PUBLISH_ENABLED == 'true'/);
+  assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /id-token:\s*write/);
   assert.match(workflow, /uses:\s*NuGet\/login@v1/);
   assert.match(workflow, /user:\s*\$\{\{ vars\.NUGET_USER \}\}/);
   assert.match(workflow, /steps\.nuget-login\.outputs\.NUGET_API_KEY/);
-  assert.match(project, /<Version>1\.1\.0<\/Version>/);
+  for (const [path, packageId] of packageProjects) {
+    const project = read(path);
+
+    assert.match(project, /<IsPackable>true<\/IsPackable>/);
+    assert.match(project, /<Version>1\.2\.0<\/Version>/);
+    assert.match(project, new RegExp(`<PackageId>${packageId.replaceAll('.', '\\.')}</PackageId>`));
+  }
   assert.match(workflow, /-getProperty:PackageVersion/);
+  assert.match(workflow, /Pack-PackageSuite\.ps1/);
+  assert.equal(
+    [...workflow.matchAll(/Assert-NextPackageVersion\.ps1/g)].length,
+    packageProjects.length,
+    'every public package must pass the release gate',
+  );
   assert.doesNotMatch(workflow, /VERSION_PREFIX|BASE_COMMIT_COUNT|git rev-list/);
   assert.doesNotMatch(workflow, /-p:PackageVersion=/);
   assert.match(workflow, /https:\/\/api\.nuget\.org\/v3\/index\.json/);
@@ -156,12 +175,13 @@ test('NuGet publication uses the manually selected project version and trusted p
   );
   assert.doesNotMatch(workflow, /secrets\.NUGET_API_KEY/);
   assert.match(publicBaseline, /DanMarshall\.FluentSpecifications" Version="1\.0\.0"/);
-  assert.match(readme, /selected manually/);
+  assert.match(readme, /select the next version explicitly/);
+  assert.match(readme, /manual workflow/);
   assert.match(readme, /Trusted Publishing/);
   assert.match(readme, /short-lived OIDC/);
 });
 
-test('all package-producing workflows read the Core project version', () => {
+test('all package-producing workflows read one version and pack the coordinated suite', () => {
   for (const path of [
     '.github/workflows/publish.yml',
     '.github/workflows/publish-nuget.yml',
@@ -169,6 +189,7 @@ test('all package-producing workflows read the Core project version', () => {
     const workflow = read(path);
 
     assert.match(workflow, /-getProperty:PackageVersion/);
+    assert.match(workflow, /Pack-PackageSuite\.ps1/);
     assert.doesNotMatch(workflow, /VERSION_PREFIX|BASE_COMMIT_COUNT|git rev-list/);
     assert.doesNotMatch(workflow, /-p:PackageVersion=/);
   }

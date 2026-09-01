@@ -8,6 +8,11 @@ param(
     [ValidateNotNullOrEmpty()]
     [string] $CandidateVersion,
 
+    [ValidateNotNullOrEmpty()]
+    [string] $FirstStableVersion = '1.0.0',
+
+    [switch] $AllowAlreadyPublished,
+
     [string] $PublishedVersionsJson,
 
     [ValidateNotNullOrEmpty()]
@@ -36,6 +41,7 @@ function ConvertTo-StableSemanticVersion {
 }
 
 $candidate = ConvertTo-StableSemanticVersion $CandidateVersion
+$firstStable = ConvertTo-StableSemanticVersion $FirstStableVersion
 
 if ($PSBoundParameters.ContainsKey('PublishedVersionsJson')) {
     $decodedVersions = ConvertFrom-Json -InputObject $PublishedVersionsJson
@@ -80,6 +86,11 @@ else {
 }
 
 if ($publishedVersions -contains $CandidateVersion) {
+    if ($AllowAlreadyPublished) {
+        Write-Output "$PackageId $CandidateVersion is already published; accepting the idempotent retry."
+        exit 0
+    }
+
     throw "$PackageId $CandidateVersion has already been published."
 }
 
@@ -96,8 +107,8 @@ $latest = $stablePublishedVersions |
     Select-Object -First 1
 
 if ($null -eq $latest) {
-    if ($CandidateVersion -ne '1.0.0') {
-        throw "The first stable version of $PackageId must be 1.0.0, not $CandidateVersion."
+    if ($CandidateVersion -ne $firstStable.Value) {
+        throw "The first stable version of $PackageId must be $($firstStable.Value), not $CandidateVersion."
     }
 
     Write-Output "Verified $PackageId $CandidateVersion as the first stable release."
