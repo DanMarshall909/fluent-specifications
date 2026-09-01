@@ -1,0 +1,105 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#f7f5ef"><title>Getting started · Fluent Specifications</title><meta name="description" content="Define a small catalog of named rules, compose them into fluent business language, and evaluate the result without exposing persistence details."><link rel="canonical" href="https://fluent-specifications.danmarshall.dev/docs/getting-started/"><meta property="og:type" content="website"><meta property="og:site_name" content="Fluent Specifications"><meta property="og:title" content="Getting started · Fluent Specifications"><meta property="og:description" content="Define a small catalog of named rules, compose them into fluent business language, and evaluate the result without exposing persistence details."><meta property="og:url" content="https://fluent-specifications.danmarshall.dev/docs/getting-started/"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Getting started · Fluent Specifications"><meta name="twitter:description" content="Define a small catalog of named rules, compose them into fluent business language, and evaluate the result without exposing persistence details."><link rel="stylesheet" href="/_astro/BaseLayout.BOzojXuf.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><header class="site-header"><div class="site-shell header-inner"><a class="brand" href="/" aria-label="Fluent Specifications home"><span class="brand-mark" aria-hidden="true">fs</span><span>Fluent Specifications</span></a><nav class="primary-nav" aria-label="Primary navigation"><a class="active" href="/docs/getting-started/">Docs</a><a href="/docs/ef-core/">EF Core</a><a href="/docs/testing/">Tests</a><a href="https://github.com/DanMarshall909/fluent-specifications">GitHub</a></nav></div></header><main id="main-content"><div class="site-shell docs-grid"><aside class="docs-sidebar" aria-label="Documentation navigation"><p class="sidebar-label">Documentation</p><nav><ol><li><a class="active" aria-current="page" href="/docs/getting-started/">Getting started</a></li><li><a href="/docs/defining-rules/">Defining rules</a></li><li><a href="/docs/composition/">Composition</a></li><li><a href="/docs/diagnostics/">Diagnostics</a></li><li><a href="/docs/repositories/">Repository extension</a></li><li><a href="/docs/ef-core/">Entity Framework Core</a></li><li><a href="/docs/testing/">Testing the behavior</a></li><li><a href="/docs/reference/">Reference and boundaries</a></li><li><a href="/docs/prior-art/">Prior art and design lineage</a></li></ol></nav></aside><article class="doc-article"><header class="doc-header"><p class="eyebrow">Start here</p><h1>Getting started</h1><p class="doc-lead">Define a small catalog of named rules, compose them into fluent business language, and evaluate the result without exposing persistence details.</p></header><div class="prose"><p>Fluent Specifications is built around one idea: a business rule should be easy
+to name, combine, run, and explain without becoming a query object.</p>
+<h2 id="install">Install</h2>
+<p>Install the .NET 10 SDK, open a terminal in the directory containing your
+project file, and run:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="shell"><code><span class="line"><span style="color:#B392F0">dotnet</span><span style="color:#9ECBFF"> add</span><span style="color:#9ECBFF"> package</span><span style="color:#9ECBFF"> DanMarshall.FluentSpecifications</span></span></code></pre>
+<p>That adds the latest stable <code>DanMarshall.FluentSpecifications</code> release to the
+project. Pin <code>--version 1.0.0</code> when you specifically need the initial release.
+If you edit project files directly, the equivalent is a <code>PackageReference</code>
+with that ID and version. Add <code>using FluentSpecifications;</code> (or a global
+using), then create a <code>public static partial</code> rule catalog marked with
+<code>[SpecificationSet&lt;T&gt;]</code> as shown below. The first build runs the included source
+generator automatically.</p>
+<p>The package contains both the runtime and source generator and has <strong>zero
+third-party package dependencies</strong>. It relies only on .NET and compiler APIs
+supplied by Microsoft, and it does not bundle vendor runtime or compiler
+assemblies.</p>
+<h2 id="the-smallest-useful-example">The smallest useful example</h2>
+<p>Create a static partial catalog for the domain type. A rule has a stable ID, a
+human name, and a typed predicate:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">SpecificationSet</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">QuickStartOrder</span><span style="color:#E1E4E8">&gt;]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> static</span><span style="color:#F97583"> partial</span><span style="color:#F97583"> class</span><span style="color:#B392F0"> QuickStartRules</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    public</span><span style="color:#F97583"> static</span><span style="color:#B392F0"> Spec</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">QuickStartOrder</span><span style="color:#E1E4E8">&gt; </span><span style="color:#B392F0">Paid</span><span style="color:#F97583"> =&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">        Spec.</span><span style="color:#B392F0">Define</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">QuickStartOrder</span><span style="color:#E1E4E8">&gt;(</span></span>
+<span class="line"><span style="color:#9ECBFF">            </span><span class="parameter-hint" data-parameter-hint="id:" aria-hidden="true"></span><span style="color:#9ECBFF">"order.paid"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#9ECBFF">            </span><span class="parameter-hint" data-parameter-hint="name:" aria-hidden="true"></span><span style="color:#9ECBFF">"Paid"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">            </span><span class="parameter-hint" data-parameter-hint="predicate:" aria-hidden="true"></span><span style="color:#B392F0">order</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> order.Paid);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    public</span><span style="color:#F97583"> static</span><span style="color:#B392F0"> Spec</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">QuickStartOrder</span><span style="color:#E1E4E8">&gt; </span><span style="color:#B392F0">Priority</span><span style="color:#F97583"> =&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">        Spec.</span><span style="color:#B392F0">Define</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">QuickStartOrder</span><span style="color:#E1E4E8">&gt;(</span></span>
+<span class="line"><span style="color:#9ECBFF">            </span><span class="parameter-hint" data-parameter-hint="id:" aria-hidden="true"></span><span style="color:#9ECBFF">"order.priority"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#9ECBFF">            </span><span class="parameter-hint" data-parameter-hint="name:" aria-hidden="true"></span><span style="color:#9ECBFF">"Priority"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">            </span><span class="parameter-hint" data-parameter-hint="predicate:" aria-hidden="true"></span><span style="color:#B392F0">order</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> order.Priority);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>The faint parameter labels shown in documentation examples are generated from
+the same Roslyn model that extracts the source. They are visual aids, like
+Rider inlay hints; they are not part of the copied C#.</p>
+<p>Import the catalog once, then compose rules without operator overloads:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> static</span><span style="color:#B392F0"> Spec</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt; </span><span style="color:#B392F0">ReadyToShip</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">=&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">    CanShip.And.HighPriority.AndNot.Suspended;</span></span></code></pre>
+<p>The returned value is still a <code>Spec&lt;Order&gt;</code>. It can be reused, rendered,
+diagnosed, or passed to infrastructure without losing its rule tree.</p>
+<h2 id="filter-sort-and-page-without-a-query-api">Filter, sort, and page without a query API</h2>
+<p>When a repository needs more than a Boolean filter, start a separate immutable
+search from the entity type. Search generation is opt-in: set
+<code>GenerateSearch = true</code> on the entity’s <code>SpecificationSet&lt;T&gt;</code> catalog. The
+target entity then lets the generator infer both the rule and field catalogs:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#F97583">var</span><span style="color:#B392F0"> request</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> Order.Search</span></span>
+<span class="line"><span style="color:#E1E4E8">    .Matching.CanShip.And.HighPriority</span></span>
+<span class="line"><span style="color:#E1E4E8">    .Sorted.By.CreatedAt.Desc</span></span>
+<span class="line"><span style="color:#E1E4E8">    .Then.By.Id.Asc</span></span>
+<span class="line"><span style="color:#E1E4E8">    .</span><span style="color:#B392F0">Page</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="number:" aria-hidden="true"></span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">).</span><span style="color:#B392F0">OfSize</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="size:" aria-hidden="true"></span><span style="color:#79B8FF">50</span><span style="color:#E1E4E8">);</span></span></code></pre>
+<p><code>Order</code> is the entity—not a <code>DbSet</code>. <code>Order.Search</code> only creates a
+provider-neutral description. A repository materializes it; application code
+never receives <code>IQueryable</code>. <code>Order.Rules</code> and <code>Order.Fields</code> remain available
+when a rule or field needs to be selected dynamically.</p>
+<p>Add the optional
+<a href="/docs/repositories/"><code>DanMarshall.FluentSpecifications.Repositories</code></a> package
+when multiple providers should share the materializing <code>IReadRepository&lt;T&gt;</code>
+contract. EF Core is one implementation of that contract, not a dependency of
+it.</p>
+<h2 id="use-a-rule-as-domain-language">Use a rule as domain language</h2>
+<p>Mark a zero-argument rule with <code>[Expose]</code> when it deserves to read like a
+Boolean property on the domain object:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Expose</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> static</span><span style="color:#E1E4E8"> Spec</span><span style="color:#F97583">&lt;</span><span style="color:#E1E4E8">Order</span><span style="color:#F97583">&gt;</span><span style="color:#B392F0"> CanShip</span><span style="color:#F97583"> =&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">    Paid</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">And</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="right:" aria-hidden="true"></span><span style="color:#E1E4E8">HasDeliveryAddress)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">AndNot</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="right:" aria-hidden="true"></span><span style="color:#E1E4E8">Suspended)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">Named</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#9ECBFF">            </span><span class="parameter-hint" data-parameter-hint="id:" aria-hidden="true"></span><span style="color:#9ECBFF">"order.can-ship"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#9ECBFF">            </span><span class="parameter-hint" data-parameter-hint="name:" aria-hidden="true"></span><span style="color:#9ECBFF">"Can ship"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#9ECBFF">            </span><span class="parameter-hint" data-parameter-hint="failure:" aria-hidden="true"></span><span style="color:#9ECBFF">"The order is not ready to ship."</span><span style="color:#E1E4E8">);</span></span></code></pre>
+<p>The generator supplies the domain property:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> ShouldDispatch</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Order</span><span style="color:#B392F0"> order</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (order.CanShip)</span></span>
+<span class="line"><span style="color:#E1E4E8">    {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p><code>[Expose]</code> is opt-in. It is best for important, argument-free domain concepts,
+not every small leaf rule.</p>
+<h2 id="what-the-package-contains">What the package contains</h2>
+<p><code>DanMarshall.FluentSpecifications</code> contains the immutable rule tree,
+evaluation and diagnostic APIs, plus the source generator that creates the
+fluent connector members. The generator runs as a compiler analyzer and is not
+a runtime dependency.</p>
+<p>Provider translation remains deliberately separate. The repository contains
+separate provider-neutral repository, expression, and EF Core packages, but the
+starter package does not pull them in or expose <code>IQueryable</code> to application
+code. Filtering, sorting, and paging are described in the starter package and
+executed only by infrastructure.</p>
+<h2 id="where-to-go-next">Where to go next</h2>
+<p>Read <a href="/docs/defining-rules/">defining rules</a> for naming and catalog design, then
+<a href="/docs/composition/">composition</a> for grouping, negation, and parameterized
+rules. Read the <a href="/docs/repositories/">repository guide</a> before choosing a
+persistence boundary. If the rules will reach a relational database, read the
+<a href="/docs/ef-core/">EF Core guide</a> before assuming an in-memory match will
+translate. The <a href="/docs/prior-art/">prior-art notes</a> explain the design lineage
+and where Fluent Specifications deliberately differs.</p>
+</div><nav class="doc-pagination" aria-label="Adjacent documentation"><span></span><a class="next" href="/docs/defining-rules/"><span>Next</span><strong>Defining rules</strong></a></nav></article><aside class="page-toc" aria-label="On this page"><p class="sidebar-label">On this page</p><ol><li><a href="#install">Install</a></li><li><a href="#the-smallest-useful-example">The smallest useful example</a></li><li><a href="#filter-sort-and-page-without-a-query-api">Filter, sort, and page without a query API</a></li><li><a href="#use-a-rule-as-domain-language">Use a rule as domain language</a></li><li><a href="#what-the-package-contains">What the package contains</a></li><li><a href="#where-to-go-next">Where to go next</a></li></ol></aside></div></main><footer class="site-footer"><div class="site-shell footer-inner"><p>Business rules should sound like the business.</p><p>Designed by Dan Marshall.</p></div></footer></body></html>

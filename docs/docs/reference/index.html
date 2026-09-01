@@ -1,0 +1,330 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#f7f5ef"><title>Reference and boundaries · Fluent Specifications</title><meta name="description" content="Review the public concepts, generated syntax, package responsibilities, diagnostics, translation errors, and deliberate non-goals of version one."><link rel="canonical" href="https://fluent-specifications.danmarshall.dev/docs/reference/"><meta property="og:type" content="website"><meta property="og:site_name" content="Fluent Specifications"><meta property="og:title" content="Reference and boundaries · Fluent Specifications"><meta property="og:description" content="Review the public concepts, generated syntax, package responsibilities, diagnostics, translation errors, and deliberate non-goals of version one."><meta property="og:url" content="https://fluent-specifications.danmarshall.dev/docs/reference/"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Reference and boundaries · Fluent Specifications"><meta name="twitter:description" content="Review the public concepts, generated syntax, package responsibilities, diagnostics, translation errors, and deliberate non-goals of version one."><link rel="stylesheet" href="/_astro/BaseLayout.BOzojXuf.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><header class="site-header"><div class="site-shell header-inner"><a class="brand" href="/" aria-label="Fluent Specifications home"><span class="brand-mark" aria-hidden="true">fs</span><span>Fluent Specifications</span></a><nav class="primary-nav" aria-label="Primary navigation"><a class="active" href="/docs/getting-started/">Docs</a><a href="/docs/ef-core/">EF Core</a><a href="/docs/testing/">Tests</a><a href="https://github.com/DanMarshall909/fluent-specifications">GitHub</a></nav></div></header><main id="main-content"><div class="site-shell docs-grid"><aside class="docs-sidebar" aria-label="Documentation navigation"><p class="sidebar-label">Documentation</p><nav><ol><li><a href="/docs/getting-started/">Getting started</a></li><li><a href="/docs/defining-rules/">Defining rules</a></li><li><a href="/docs/composition/">Composition</a></li><li><a href="/docs/diagnostics/">Diagnostics</a></li><li><a href="/docs/repositories/">Repository extension</a></li><li><a href="/docs/ef-core/">Entity Framework Core</a></li><li><a href="/docs/testing/">Testing the behavior</a></li><li><a class="active" aria-current="page" href="/docs/reference/">Reference and boundaries</a></li><li><a href="/docs/prior-art/">Prior art and design lineage</a></li></ol></nav></aside><article class="doc-article"><header class="doc-header"><p class="eyebrow">Reference</p><h1>Reference and boundaries</h1><p class="doc-lead">Review the public concepts, generated syntax, package responsibilities, diagnostics, translation errors, and deliberate non-goals of version one.</p></header><div class="prose"><p>Fluent Specifications keeps a narrow center: an immutable, named Boolean tree
+over one candidate type. The surrounding packages add syntax, diagnostics, and
+infrastructure translation without changing that meaning.</p>
+<h2 id="core-concepts">Core concepts</h2>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Spec&lt;T&gt;</code></td>
+<td>Immutable Boolean rule and composition surface</td>
+</tr>
+<tr>
+<td><code>Spec.Define</code></td>
+<td>Create a named leaf from an expression</td>
+</tr>
+<tr>
+<td><code>Spec.Always&lt;T&gt;()</code></td>
+<td>Explicit rule that always passes</td>
+</tr>
+<tr>
+<td><code>Spec.Never&lt;T&gt;()</code></td>
+<td>Explicit rule that never passes</td>
+</tr>
+<tr>
+<td><code>Spec.AllOf</code></td>
+<td>Conjunction over a single immutable snapshot</td>
+</tr>
+<tr>
+<td><code>Spec.AnyOf</code></td>
+<td>Disjunction over a single immutable snapshot</td>
+</tr>
+<tr>
+<td><code>Matches</code></td>
+<td>Fast, short-circuiting in-memory Boolean evaluation</td>
+</tr>
+<tr>
+<td><code>Check</code></td>
+<td>Structured complete or short-circuit diagnostics</td>
+</tr>
+<tr>
+<td><code>Named</code></td>
+<td>Add a domain boundary without discarding child rules</td>
+</tr>
+<tr>
+<td><code>Accept</code></td>
+<td>Provider-facing traversal over the closed rule tree</td>
+</tr>
+<tr>
+<td><code>Order.Search</code></td>
+<td>Generated, provider-neutral search entry point</td>
+</tr>
+<tr>
+<td><code>Order.Rules</code></td>
+<td>Explicit generated rule catalog for dynamic composition</td>
+</tr>
+<tr>
+<td><code>Order.Fields</code></td>
+<td>Strongly typed generated field catalog</td>
+</tr>
+<tr>
+<td><code>Search&lt;T&gt;</code></td>
+<td>Immutable filter, ordering, and optional paging description</td>
+</tr>
+<tr>
+<td><code>Page&lt;T&gt;</code></td>
+<td>Materialized results plus page and total metadata</td>
+</tr>
+<tr>
+<td><code>IReadRepository&lt;T&gt;</code></td>
+<td>Optional provider-neutral materializing read contract</td>
+</tr>
+</tbody>
+</table>
+<p>The retained node kinds are <code>Always</code>, <code>Never</code>, <code>Leaf</code>, <code>Named</code>, <code>And</code>, <code>Or</code>, and
+<code>Not</code>. <code>AndNot</code>, <code>OrNot</code>, <code>AllOf</code>, and <code>AnyOf</code> are construction conveniences
+that normalize to those nodes.</p>
+<h2 id="generated-language">Generated language</h2>
+<table>
+<thead>
+<tr>
+<th>Catalog member</th>
+<th>Generated connector form</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HighPriority</code></td>
+<td><code>rule.And.HighPriority</code></td>
+</tr>
+<tr>
+<td><code>Suspended</code></td>
+<td><code>rule.AndNot.Suspended</code></td>
+</tr>
+<tr>
+<td><code>WorthAtLeast(int)</code></td>
+<td><code>rule.And.WorthAtLeast(10_000)</code></td>
+</tr>
+<tr>
+<td>grouped or dynamic rule</td>
+<td><code>rule.And(otherRule)</code></td>
+</tr>
+<tr>
+<td><code>[Expose] CanShip</code></td>
+<td><code>order.CanShip</code></td>
+</tr>
+<tr>
+<td>inferred search rule</td>
+<td><code>Order.Search.Matching.CanShip</code></td>
+</tr>
+<tr>
+<td>primary field ordering</td>
+<td><code>.Sorted.By.CreatedAt.Desc</code></td>
+</tr>
+<tr>
+<td>tie-break ordering</td>
+<td><code>.Then.By.Id.Asc</code></td>
+</tr>
+<tr>
+<td>one-based page</td>
+<td><code>.Page(2).OfSize(50)</code></td>
+</tr>
+</tbody>
+</table>
+<p>The first version deliberately does not overload Boolean operators and does not
+implicitly convert between specifications, expressions, delegates, or Boolean
+values.</p>
+<h2 id="project-responsibilities">Project responsibilities</h2>
+<table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Owns</th>
+<th>Must not own</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FluentSpecifications.Core</code></td>
+<td>Rule tree, immutable searches, generated-field descriptors, pages, evaluation, diagnostics, traversal contracts</td>
+<td>EF or query-provider types</td>
+</tr>
+<tr>
+<td><code>FluentSpecifications.Generators</code></td>
+<td>Catalog discovery and C# 14 rule, field, and search extension members</td>
+<td>Runtime query execution</td>
+</tr>
+<tr>
+<td><code>FluentSpecifications.Expressions</code></td>
+<td>Parameter-rebound expression plans</td>
+<td><code>IQueryable</code> application</td>
+</tr>
+<tr>
+<td><code>FluentSpecifications.Repositories</code></td>
+<td>Provider-neutral materializing read contract</td>
+<td>Provider or deferred-query types</td>
+</tr>
+<tr>
+<td><code>FluentSpecifications.EntityFrameworkCore</code></td>
+<td>Relational preflight and <code>IReadRepository&lt;T&gt;</code> implementation</td>
+<td>Application repository policy</td>
+</tr>
+<tr>
+<td><code>FluentSpecifications.Docs</code></td>
+<td>Roslyn symbol extraction and Markdown synchronization</td>
+<td>Business-rule execution</td>
+</tr>
+</tbody>
+</table>
+<p>Dependencies point inward. Core has no reference to the repository contract or
+a provider adapter. The repository contract depends only on Core; EF Core
+depends on that contract and supplies one implementation.</p>
+<h2 id="nuget-packages">NuGet packages</h2>
+<p>The 1.2.0 suite publishes four coordinated packages:</p>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Contents</th>
+<th>Direct package dependencies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DanMarshall.FluentSpecifications</code></td>
+<td>Core runtime and source generator</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>DanMarshall.FluentSpecifications.Repositories</code></td>
+<td>Provider-neutral <code>IReadRepository&lt;T&gt;</code> contract</td>
+<td>Starter package</td>
+</tr>
+<tr>
+<td><code>DanMarshall.FluentSpecifications.Expressions</code></td>
+<td>Parameter-rebound expression translator</td>
+<td>Starter package</td>
+</tr>
+<tr>
+<td><code>DanMarshall.FluentSpecifications.EntityFrameworkCore</code></td>
+<td>Relational executor and repository implementation</td>
+<td>Starter, repository, expressions, and EF Core Relational</td>
+</tr>
+</tbody>
+</table>
+<p>The starter package began at 1.0.0 and retains <strong>zero third-party package
+dependencies</strong>. The optional extensions join at 1.2.0 and do not become
+transitive dependencies of the starter. Installing the EF package brings the
+repository and expression assemblies plus Microsoft’s relational EF runtime;
+install the starter directly as well when its source generator is required.</p>
+<p>Maintainers select one coordinated SemVer explicitly in every packable project.
+The package-suite script reads each effective <code>PackageVersion</code>, rejects any
+mismatch, and produces all <code>.nupkg</code> and <code>.snupkg</code> artifacts together. Existing
+package lines accept only the immediate next patch, minor, or major transition;
+a new extension may begin at the current suite version.</p>
+<p>Publication is an explicitly dispatched GitHub Actions workflow whose requested
+version must match the projects. Before requesting a credential, it compares
+every package ID with NuGet.org. Idempotent retries allow recovery from a
+partially completed suite publication, while NuGet’s immutable package versions
+still prevent an artifact from being replaced.</p>
+<p>Releases use NuGet.org Trusted Publishing. The publisher requests a short-lived
+OIDC credential immediately before pushing the packages, so no long-lived NuGet
+API key is stored in the repository or its CI settings.</p>
+<h2 id="failure-types">Failure types</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RuleFailure</code></td>
+<td>A predicate returned <code>false</code> as a normal business result</td>
+</tr>
+<tr>
+<td><code>EvaluationError</code></td>
+<td>A predicate threw during diagnostic evaluation</td>
+</tr>
+<tr>
+<td><code>SpecificationEvaluationException</code></td>
+<td>Fast Boolean evaluation could not produce a result</td>
+</tr>
+<tr>
+<td><code>TranslationError</code></td>
+<td>Infrastructure could not prepare a provider plan</td>
+</tr>
+<tr>
+<td><code>SpecificationTranslationException</code></td>
+<td>A failed plan was requested for execution</td>
+</tr>
+</tbody>
+</table>
+<p>Translation errors carry a stable code, node path, and rule ID when a specific
+leaf is responsible. They do not contain candidate values.</p>
+<h2 id="generator-diagnostics">Generator diagnostics</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FSPEC001</code></td>
+<td>The specification catalog shape is invalid</td>
+</tr>
+<tr>
+<td><code>FSPEC002</code></td>
+<td>An exposed property would hide an instance member</td>
+</tr>
+<tr>
+<td><code>FSPEC003</code></td>
+<td>Generated extension properties require C# 14</td>
+</tr>
+<tr>
+<td><code>FSPEC004</code></td>
+<td>A rule member shape cannot be represented safely</td>
+</tr>
+<tr>
+<td><code>FSPEC005</code></td>
+<td>More than one catalog tries to generate inferred search language for an entity</td>
+</tr>
+<tr>
+<td><code>FSPEC006</code></td>
+<td>An entity member would hide <code>Search</code>, <code>Rules</code>, or <code>Fields</code></td>
+</tr>
+<tr>
+<td><code>FSPEC007</code></td>
+<td>A catalog member would collide with a generated search-support type</td>
+</tr>
+</tbody>
+</table>
+<p>Search generation is opt-in for 1.x source compatibility. Mark the one catalog
+that owns an entity’s inferred search language with <code>GenerateSearch = true</code> on
+its <code>SpecificationSet&lt;T&gt;</code> attribute. Other catalogs keep generating their
+normal specification connectors. Generated fields include effective inherited
+public readable members, while indexers, static members, and inaccessible
+getters are omitted. Existing catalog members named <code>SearchRoot</code>, <code>RuleCatalog</code>,
+<code>SearchRuleCatalog</code>, or <code>FieldCatalog</code> are diagnosed because those names are
+reserved for generated support types. If a field name collides with an
+inherited <code>object</code> member on the selector, use the explicit dynamic form
+<code>.Sorted.By[Order.Fields.ToString]</code> or <code>.Then.By[Order.Fields.ToString]</code>.</p>
+<h2 id="deliberate-non-goals">Deliberate non-goals</h2>
+<p>A specification is not a container for:</p>
+<ul>
+<li>sorting, paging, projection, joins, or includes;</li>
+<li>tracking, split-query, caching, or provider flags;</li>
+<li>mutations, commands, or async workflows;</li>
+<li>arbitrary validation UI state;</li>
+<li>a promise that every .NET expression translates everywhere; or</li>
+<li>a CRUD repository framework.</li>
+</ul>
+<p>Those exclusions keep <code>a.Or.b</code> meaningful. Sorting and paging therefore live
+in the separate immutable <code>Search&lt;T&gt;</code> description. Searches still exclude
+projection, joins, includes, tracking, split-query settings, and provider
+objects. The optional <code>IReadRepository&lt;T&gt;</code> contract standardizes only the small
+materializing read surface already represented by specifications and searches.</p>
+<h2 id="current-status">Current status</h2>
+<p>The repository targets C# 14 and .NET 10. The coordinated 1.2.0 suite keeps the
+starter dependency-free while making the repository contract, expression
+translator, and EF Core implementation independently installable. The
+checked-in specification and executable tests define its behavioral contract.</p>
+</div><nav class="doc-pagination" aria-label="Adjacent documentation"><a href="/docs/testing/"><span>Previous</span><strong>Testing the behavior</strong></a><a class="next" href="/docs/prior-art/"><span>Next</span><strong>Prior art and design lineage</strong></a></nav></article><aside class="page-toc" aria-label="On this page"><p class="sidebar-label">On this page</p><ol><li><a href="#core-concepts">Core concepts</a></li><li><a href="#generated-language">Generated language</a></li><li><a href="#project-responsibilities">Project responsibilities</a></li><li><a href="#nuget-packages">NuGet packages</a></li><li><a href="#failure-types">Failure types</a></li><li><a href="#generator-diagnostics">Generator diagnostics</a></li><li><a href="#deliberate-non-goals">Deliberate non-goals</a></li><li><a href="#current-status">Current status</a></li></ol></aside></div></main><footer class="site-footer"><div class="site-shell footer-inner"><p>Business rules should sound like the business.</p><p>Designed by Dan Marshall.</p></div></footer></body></html>
