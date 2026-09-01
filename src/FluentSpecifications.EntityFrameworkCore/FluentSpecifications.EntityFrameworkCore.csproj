@@ -12,5 +12,6 @@
   <ItemGroup>
     <ProjectReference Include="../FluentSpecifications.Core/FluentSpecifications.Core.csproj" />
     <ProjectReference Include="../FluentSpecifications.Expressions/FluentSpecifications.Expressions.csproj" />
+    <ProjectReference Include="../FluentSpecifications.Repositories/FluentSpecifications.Repositories.csproj" />
   </ItemGroup>
 </Project>

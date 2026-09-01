@@ -662,19 +662,54 @@ access. A translator MAY reject captures it cannot safely parameterize.
 
 ## 14. Repository boundary
 
-The library does not require a universal repository interface. A consuming
-application's repository SHOULD accept specifications directly:
+The optional `FluentSpecifications.Repositories` extension defines the small,
+provider-neutral `IReadRepository<T>` contract shared by read providers. It is
+not a CRUD framework and does not own writes, units of work, includes,
+projections, or provider options:
 
 ```csharp
-public interface IOrderRepository
+public interface IReadRepository<T>
 {
-    Task<IReadOnlyList<Order>> ListAsync(
-        Spec<Order> specification,
-        CancellationToken cancellationToken);
+    Task<IReadOnlyList<T>> ListAsync(
+        Spec<T> specification,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<T>> ListAsync(
+        Search<T> search,
+        CancellationToken cancellationToken = default);
 
     Task<bool> AnyAsync(
-        Spec<Order> specification,
-        CancellationToken cancellationToken);
+        Spec<T> specification,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> AnyAsync(
+        Search<T> search,
+        CancellationToken cancellationToken = default);
+
+    Task<int> CountAsync(
+        Spec<T> specification,
+        CancellationToken cancellationToken = default);
+
+    Task<int> CountAsync(
+        Search<T> search,
+        CancellationToken cancellationToken = default);
+
+    Task<Page<T>> PageAsync(
+        PagedSearch<T> search,
+        CancellationToken cancellationToken = default);
+}
+```
+
+The contract MUST NOT constrain `T` to a provider-specific shape. A provider
+implementation MAY add constraints required by that provider; for example, the
+Entity Framework Core implementation requires mapped reference types.
+
+Applications MAY consume `IReadRepository<Order>` directly or extend it with a
+domain-specific contract:
+
+```csharp
+public interface IOrderRepository : IReadRepository<Order>
+{
 }
 ```
 
@@ -702,7 +737,7 @@ var request = Order.Search
     .Then.By.Id.Asc
     .Page(2).OfSize(50);
 
-var page = await orderRepository.FindAsync(request, cancellationToken);
+var page = await orderRepository.PageAsync(request, cancellationToken);
 ```
 
 The example above is normative. The generated fluent surface MUST provide:
@@ -959,18 +994,18 @@ The intended package split is:
 - `FluentSpecifications.Expressions` — an infrastructure-facing reference
   translator that produces a parameter-rebound
   `Expression<Func<T, bool>>` without exposing `IQueryable`;
+- `FluentSpecifications.Repositories` — the optional provider-neutral,
+  materializing `IReadRepository<T>` contract;
 - `FluentSpecifications.EntityFrameworkCore` — relational translation
-  preflight and materializing execution, for infrastructure use only;
+  preflight plus an `IReadRepository<T>` implementation, for infrastructure
+  use only;
 - `FluentSpecifications.Testing` — assertion and conformance helpers; and
 - provider adapters such as `FluentSpecifications.EntityFrameworkCore`, used by
   infrastructure only.
 
-`Core` MUST NOT reference a provider adapter. Provider adapters depend inward on
-`Core`.
-
-The repository abstraction is intentionally not a required core package. A
-small optional repository-contract package MAY be added later if real consumers
-demonstrate a common shape.
+`Core` MUST NOT reference the repository contract or a provider adapter. The
+repository extension depends only on `Core`; provider adapters depend inward on
+the repository contract and `Core`.
 
 ## 21. Testing requirements
 
@@ -1028,6 +1063,10 @@ Search-capable adapters MUST additionally test:
 - complete preflight before the first database command;
 - cancellation before execution; and
 - absence of `IQueryable` from every public search and adapter signature.
+
+The repository-contract assembly MUST additionally test that it has no provider
+dependency, exposes no deferred query type, and can be implemented for a type
+that does not satisfy Entity Framework's reference-type constraint.
 
 Where an in-memory result and provider result differ intentionally, the test
 must name and document that difference.

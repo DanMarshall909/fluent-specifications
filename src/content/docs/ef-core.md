@@ -5,36 +5,34 @@ order: 5
 section: Infrastructure
 ---
 
-The EF Core adapter is deliberately a materializing infrastructure boundary.
+EF Core is one implementation of the provider-neutral repository boundary.
 Applications pass Boolean rules or immutable searches to repositories; they do
 not receive deferred queries, provider expressions, or EF configuration.
 
-## The repository owns the query
+## The contract is not tied to EF
 
-The example application exposes a small domain-facing contract:
+The optional repository extension exposes the small, read-only
+`IReadRepository<T>` contract with no provider dependency or reference-type
+constraint. Applications can use it directly or specialize it with a domain
+name:
 
 ```csharp symbol="T:FluentSpecifications.Examples.OrderFulfilment.IOrderRepository"
-public interface IOrderRepository
+public interface IOrderRepository : IReadRepository<Order>
 {
-    Task<IReadOnlyList<Order>> ListAsync(
-        Spec<Order> specification,
-        CancellationToken cancellationToken = default);
-
-    Task<bool> AnyAsync(
-        Spec<Order> specification,
-        CancellationToken cancellationToken = default);
-
-    Task<Page<Order>> FindAsync(
-        PagedSearch<Order> search,
-        CancellationToken cancellationToken = default);
 }
 ```
 
+The generic contract provides materializing `ListAsync`, `PageAsync`,
+`AnyAsync`, and `CountAsync` operations for specifications and searches. An
+application can also define its own repository shape. EF Core's
+`EntityFrameworkRepository<T>` implements the shared contract; other providers
+can implement it without inheriting EF's mapped-class constraint.
+
 Application code supplies a specification and receives materialized data:
 
-```csharp symbol="M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.FindReadyOrdersAsync(FluentSpecifications.Examples.OrderFulfilment.IOrderRepository,System.Threading.CancellationToken)"
+```csharp symbol="M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.FindReadyOrdersAsync(FluentSpecifications.IReadRepository{FluentSpecifications.Examples.OrderFulfilment.Order},System.Threading.CancellationToken)"
 public static Task<IReadOnlyList<Order>> FindReadyOrdersAsync(
-    IOrderRepository repository,
+    IReadRepository<Order> repository,
     CancellationToken cancellationToken = default) =>
     repository.ListAsync(
         CanShip.And(HighPriority.Or.ManualOverride),
@@ -57,7 +55,7 @@ policy remain infrastructure concerns.
 
 ## Translation is checked before execution
 
-The relational adapter composes the complete expression and asks the configured
+The EF implementation composes the complete expression and asks the configured
 provider to translate it before executing a command. An unsupported filter
 produces structured rule and tree-path errors; it does not fetch an unbounded
 set and retry in memory:
@@ -68,7 +66,7 @@ public async Task Unsupported_filter_fails_before_any_select_is_executed()
 {
     await using var database = await ExampleDatabase.CreateAsync();
     database.CommandCounter.Reset();
-    var repository = new EfOrderRepository(database.Context);
+    var repository = new EntityFrameworkRepository<Order>(database.Context);
     var inMemoryCandidate = new Order { CustomerName = "ALICE" };
     var rule = CustomerNamedIgnoringCase("alice");
 
@@ -131,7 +129,7 @@ default mode:
 public async Task Null_inequality_has_matching_clr_and_default_ef_semantics()
 {
     await using var database = await ExampleDatabase.CreateAsync();
-    var repository = new EfOrderRepository(database.Context);
+    var repository = new EntityFrameworkRepository<Order>(database.Context);
     var rule = CustomerReferenceIsNot("BLOCKED");
     var inMemoryIds = database.VisibleSeedOrders
         .Where(rule.Matches)
@@ -196,7 +194,7 @@ structured translation error:
 public async Task Provider_specific_scalar_limit_is_a_structured_translation_error()
 {
     await using var database = await ExampleDatabase.CreateAsync();
-    var repository = new EfOrderRepository(database.Context);
+    var repository = new EntityFrameworkRepository<Order>(database.Context);
     var rule = ProviderTimestampBefore(DateTimeOffset.UtcNow);
 
     var exception = await Assert.ThrowsAsync<SpecificationTranslationException>(() =>

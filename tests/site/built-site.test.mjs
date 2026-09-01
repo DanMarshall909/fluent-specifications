@@ -77,6 +77,11 @@ test('every generated page has production metadata and valid internal links', ()
     assert.match(html, /<title>[^<]+<\/title>/i, `${label} has no title`);
     assert.match(html, /<meta name="description" content="[^"]{70,}"/i, `${label} has no useful description`);
     assert.match(html, /<link rel="canonical" href="https:\/\/fluent-specifications\.danmarshall\.dev\//i, `${label} has no production canonical URL`);
+    assert.doesNotMatch(
+      html,
+      /```csharp\s+symbol=/,
+      `${label} contains an unrendered Roslyn-backed code fence`,
+    );
 
     for (const [, href] of html.matchAll(/href="([^"]+)"/g)) {
       const target = outputPathForHref(page, href);

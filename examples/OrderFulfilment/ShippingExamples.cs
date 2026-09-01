@@ -39,7 +39,7 @@ public static class ShippingExamples
         CanShip.Check(order);
 
     public static Task<IReadOnlyList<Order>> FindReadyOrdersAsync(
-        IOrderRepository repository,
+        IReadRepository<Order> repository,
         CancellationToken cancellationToken = default) =>
         repository.ListAsync(
             CanShip.And(HighPriority.Or.ManualOverride),

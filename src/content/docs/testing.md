@@ -144,7 +144,7 @@ public async Task Unsupported_filter_fails_before_any_select_is_executed()
 {
     await using var database = await ExampleDatabase.CreateAsync();
     database.CommandCounter.Reset();
-    var repository = new EfOrderRepository(database.Context);
+    var repository = new EntityFrameworkRepository<Order>(database.Context);
     var inMemoryCandidate = new Order { CustomerName = "ALICE" };
     var rule = CustomerNamedIgnoringCase("alice");
 
@@ -175,14 +175,14 @@ the total metadata returned from the real SQLite adapter:
 public async Task Fluent_search_filters_sorts_and_returns_page_metadata()
 {
     await using var database = await ExampleDatabase.CreateAsync();
-    var repository = new EfOrderRepository(database.Context);
+    var repository = new EntityFrameworkRepository<Order>(database.Context);
     var request = Order.Search
         .Matching.Paid
         .Sorted.By.CreatedAt.Desc
         .Then.By.Id.Asc
         .Page(2).OfSize(1);
 
-    var page = await repository.FindAsync(request);
+    var page = await repository.PageAsync(request);
 
     Assert.Equal([2], page.Results.Select(order => order.Id));
     Assert.Equal(2, page.Number);
@@ -216,6 +216,30 @@ public async Task Unsupported_sort_fails_before_count_or_page_commands_execute()
     Assert.Equal("ef-core-sort-translation-failed", error.Code);
     Assert.Equal("$.sort[0]", error.NodePath);
     Assert.Equal(0, database.CommandCounter.ReaderExecutions);
+}
+```
+
+## Repository providers share one contract
+
+The repository contract lives outside EF Core, has no provider dependency, and
+does not constrain candidates to reference types. A small in-memory provider in
+the contract suite proves that a value type can implement and execute the same
+materializing surface:
+
+```csharp symbol="M:FluentSpecifications.Repositories.Tests.RepositoryContractTests.A_non_ef_provider_can_implement_the_contract_for_value_types"
+[Fact]
+public async Task A_non_ef_provider_can_implement_the_contract_for_value_types()
+{
+    IReadRepository<int> repository = new InMemoryReadRepository<int>([1, 2, 3, 4]);
+    var even = Spec.Define<int>("number.even", "Even", number => number % 2 == 0);
+    var search = Search.Matching(even)
+        .Sorted.By[SearchField.Define<int, int>("Value", number => number)].Desc
+        .Page(1).OfSize(1);
+
+    Assert.Equal([2, 4], await repository.ListAsync(even));
+    Assert.Equal([4], (await repository.PageAsync(search)).Results);
+    Assert.True(await repository.AnyAsync(even));
+    Assert.Equal(2, await repository.CountAsync(even));
 }
 ```
 

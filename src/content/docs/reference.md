@@ -28,6 +28,7 @@ infrastructure translation without changing that meaning.
 | `Order.Fields` | Strongly typed generated field catalog |
 | `Search<T>` | Immutable filter, ordering, and optional paging description |
 | `Page<T>` | Materialized results plus page and total metadata |
+| `IReadRepository<T>` | Optional provider-neutral materializing read contract |
 
 The retained node kinds are `Always`, `Never`, `Leaf`, `Named`, `And`, `Or`, and
 `Not`. `AndNot`, `OrNot`, `AllOf`, and `AnyOf` are construction conveniences
@@ -58,10 +59,13 @@ values.
 | `FluentSpecifications.Core` | Rule tree, immutable searches, generated-field descriptors, pages, evaluation, diagnostics, traversal contracts | EF or query-provider types |
 | `FluentSpecifications.Generators` | Catalog discovery and C# 14 rule, field, and search extension members | Runtime query execution |
 | `FluentSpecifications.Expressions` | Parameter-rebound expression plans | `IQueryable` application |
-| `FluentSpecifications.EntityFrameworkCore` | Relational preflight and materialization | Domain repository contracts |
+| `FluentSpecifications.Repositories` | Provider-neutral materializing read contract | Provider or deferred-query types |
+| `FluentSpecifications.EntityFrameworkCore` | Relational preflight and `IReadRepository<T>` implementation | Application repository policy |
 | `FluentSpecifications.Docs` | Roslyn symbol extraction and Markdown synchronization | Business-rule execution |
 
-Dependencies point inward. Core has no reference to a provider adapter.
+Dependencies point inward. Core has no reference to the repository contract or
+a provider adapter. The repository contract depends only on Core; EF Core
+depends on that contract and supplies one implementation.
 
 ## NuGet package
 
@@ -79,8 +83,9 @@ version with NuGet.org. Only the immediate next patch, minor, or major SemVer
 transition is accepted; unchanged versions, duplicates, gaps, and
 prerelease-shaped versions fail the release.
 
-The expression and EF Core projects remain separate infrastructure adapters;
-they are not transitive dependencies of the starter package.
+The repository contract, expression adapter, and EF Core implementation remain
+separate extensions; they are not transitive dependencies of the starter
+package.
 
 Releases use NuGet.org Trusted Publishing through GitHub Actions. The publisher
 requests a short-lived OIDC credential immediately before pushing the package,
@@ -131,12 +136,13 @@ A specification is not a container for:
 - mutations, commands, or async workflows;
 - arbitrary validation UI state;
 - a promise that every .NET expression translates everywhere; or
-- a universal repository framework.
+- a CRUD repository framework.
 
 Those exclusions keep `a.Or.b` meaningful. Sorting and paging therefore live
 in the separate immutable `Search<T>` description. Searches still exclude
 projection, joins, includes, tracking, split-query settings, and provider
-objects.
+objects. The optional `IReadRepository<T>` contract standardizes only the small
+materializing read surface already represented by specifications and searches.
 
 ## Current status
 

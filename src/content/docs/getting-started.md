@@ -87,6 +87,10 @@ provider-neutral description. A repository materializes it; application code
 never receives `IQueryable`. `Order.Rules` and `Order.Fields` remain available
 when a rule or field needs to be selected dynamically.
 
+Use the optional `FluentSpecifications.Repositories` project when multiple
+providers should share the materializing `IReadRepository<T>` contract. EF Core
+is one implementation of that contract, not a dependency of it.
+
 ## Use a rule as domain language
 
 Mark a zero-argument rule with `[Expose]` when it deserves to read like a
@@ -129,9 +133,10 @@ fluent connector members. The generator runs as a compiler analyzer and is not
 a runtime dependency.
 
 Provider translation remains deliberately separate. The repository contains
-expression and EF Core adapters, but the starter package does not pull EF Core
-or expose `IQueryable` to application code. Filtering, sorting, and paging are
-described in the starter package and executed only by infrastructure.
+the provider-neutral repository contract plus expression and EF Core adapters,
+but the starter package does not pull EF Core or expose `IQueryable` to
+application code. Filtering, sorting, and paging are described in the starter
+package and executed only by infrastructure.
 
 ## Where to go next
 

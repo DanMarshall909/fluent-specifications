@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/FluentSpecifications.Core/FluentSpecifications.Core.csproj" />
+    <ProjectReference Include="../../src/FluentSpecifications.Repositories/FluentSpecifications.Repositories.csproj" />
     <ProjectReference Include="../../src/FluentSpecifications.Generators/FluentSpecifications.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />

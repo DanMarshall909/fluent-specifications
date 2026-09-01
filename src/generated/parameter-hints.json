@@ -149,59 +149,47 @@
   ],
   "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Fluent_search_filters_sorts_and_returns_page_metadata": [
     {
-      "offset": 194,
-      "name": "context"
-    },
-    {
-      "offset": 339,
+      "offset": 354,
       "name": "number"
     },
     {
-      "offset": 349,
+      "offset": 364,
       "name": "size"
     },
     {
-      "offset": 396,
+      "offset": 411,
       "name": "search"
     }
   ],
   "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Null_inequality_has_matching_clr_and_default_ef_semantics": [
     {
-      "offset": 198,
-      "name": "context"
-    },
-    {
-      "offset": 255,
+      "offset": 270,
       "name": "blockedReference"
     },
     {
-      "offset": 331,
+      "offset": 346,
       "name": "predicate"
     },
     {
-      "offset": 361,
+      "offset": 376,
       "name": "selector"
     },
     {
-      "offset": 468,
+      "offset": 483,
       "name": "specification"
     },
     {
-      "offset": 491,
+      "offset": 506,
       "name": "selector"
     }
   ],
   "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Provider_specific_scalar_limit_is_a_structured_translation_error": [
     {
-      "offset": 205,
-      "name": "context"
-    },
-    {
-      "offset": 263,
+      "offset": 278,
       "name": "cutoff"
     },
     {
-      "offset": 403,
+      "offset": 418,
       "name": "specification"
     }
   ],
@@ -217,19 +205,15 @@
   ],
   "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Unsupported_filter_fails_before_any_select_is_executed": [
     {
-      "offset": 232,
-      "name": "context"
-    },
-    {
-      "offset": 358,
+      "offset": 373,
       "name": "expected"
     },
     {
-      "offset": 398,
+      "offset": 413,
       "name": "candidate"
     },
     {
-      "offset": 535,
+      "offset": 550,
       "name": "specification"
     }
   ],
@@ -287,9 +271,9 @@
       "name": "candidate"
     }
   ],
-  "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.FindReadyOrdersAsync(FluentSpecifications.Examples.OrderFulfilment.IOrderRepository,System.Threading.CancellationToken)": [
+  "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.FindReadyOrdersAsync(FluentSpecifications.IReadRepository{FluentSpecifications.Examples.OrderFulfilment.Order},System.Threading.CancellationToken)": [
     {
-      "offset": 184,
+      "offset": 190,
       "name": "specification"
     }
   ],
@@ -365,6 +349,60 @@
     {
       "offset": 1008,
       "name": "predicate"
+    }
+  ],
+  "M:FluentSpecifications.Repositories.Tests.RepositoryContractTests.A_non_ef_provider_can_implement_the_contract_for_value_types": [
+    {
+      "offset": 160,
+      "name": "candidates"
+    },
+    {
+      "offset": 207,
+      "name": "id"
+    },
+    {
+      "offset": 222,
+      "name": "name"
+    },
+    {
+      "offset": 230,
+      "name": "predicate"
+    },
+    {
+      "offset": 291,
+      "name": "specification"
+    },
+    {
+      "offset": 316,
+      "name": "field"
+    },
+    {
+      "offset": 345,
+      "name": "name"
+    },
+    {
+      "offset": 354,
+      "name": "selector"
+    },
+    {
+      "offset": 392,
+      "name": "number"
+    },
+    {
+      "offset": 402,
+      "name": "size"
+    },
+    {
+      "offset": 459,
+      "name": "specification"
+    },
+    {
+      "offset": 578,
+      "name": "specification"
+    },
+    {
+      "offset": 634,
+      "name": "specification"
     }
   ],
   "P:FluentSpecifications.Examples.OrderFulfilment.OrderRules.CanShip": [

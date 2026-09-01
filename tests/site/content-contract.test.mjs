@@ -60,6 +60,7 @@ test('the testing guide points to representative executable contracts', () => {
   for (const testName of [
     'Zero_argument_rules_compose_without_parentheses',
     'Matches_short_circuits_and_from_left_to_right',
+    'A_non_ef_provider_can_implement_the_contract_for_value_types',
     'Unsupported_filter_fails_before_any_select_is_executed',
     'Public_ef_adapter_api_never_returns_or_accepts_iqueryable',
   ]) {

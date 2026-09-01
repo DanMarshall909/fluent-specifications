@@ -3,6 +3,7 @@
     <Project Path="src/FluentSpecifications.Core/FluentSpecifications.Core.csproj" />
     <Project Path="src/FluentSpecifications.Expressions/FluentSpecifications.Expressions.csproj" />
     <Project Path="src/FluentSpecifications.Generators/FluentSpecifications.Generators.csproj" />
+    <Project Path="src/FluentSpecifications.Repositories/FluentSpecifications.Repositories.csproj" />
     <Project Path="src/FluentSpecifications.EntityFrameworkCore/FluentSpecifications.EntityFrameworkCore.csproj" />
   </Folder>
   <Folder Name="/examples/">
@@ -13,6 +14,7 @@
     <Project Path="tests/FluentSpecifications.Generator.IntegrationTests/FluentSpecifications.Generator.IntegrationTests.csproj" />
     <Project Path="tests/FluentSpecifications.Generators.Tests/FluentSpecifications.Generators.Tests.csproj" />
     <Project Path="tests/FluentSpecifications.Expressions.Tests/FluentSpecifications.Expressions.Tests.csproj" />
+    <Project Path="tests/FluentSpecifications.Repositories.Tests/FluentSpecifications.Repositories.Tests.csproj" />
     <Project Path="tests/FluentSpecifications.EntityFrameworkCore.Tests/FluentSpecifications.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/FluentSpecifications.Docs.Tests/FluentSpecifications.Docs.Tests.csproj" />
     <Project Path="tests/FluentSpecifications.NuGet.Tests/FluentSpecifications.NuGet.Tests.csproj" />

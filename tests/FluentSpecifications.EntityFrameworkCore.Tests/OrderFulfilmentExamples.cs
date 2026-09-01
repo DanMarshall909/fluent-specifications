@@ -35,7 +35,7 @@ public sealed class OrderFulfilmentExamples
     public async Task Repository_example_executes_the_same_rule_in_sqlite()
     {
         await using var database = await ExampleDatabase.CreateAsync();
-        var repository = new EfOrderRepository(database.Context);
+        IReadRepository<Order> repository = new EntityFrameworkRepository<Order>(database.Context);
         var ready = CanShip.And(HighPriority.Or.ManualOverride).AndNot.Suspended;
 
         var orders = await repository.ListAsync(ready);
@@ -70,7 +70,7 @@ public sealed class OrderFulfilmentExamples
     {
         await using var database = await ExampleDatabase.CreateAsync();
         database.CommandCounter.Reset();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         var inMemoryCandidate = new Order { CustomerName = "ALICE" };
         var rule = CustomerNamedIgnoringCase("alice");
 
@@ -91,7 +91,7 @@ public sealed class OrderFulfilmentExamples
     {
         await using var database = await ExampleDatabase.CreateAsync();
         database.CommandCounter.Reset();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         var rule = CustomerNamedIgnoringCase("alice")
             .And(CustomerNamedByDomainMethod("alice"));
 
@@ -118,7 +118,7 @@ public sealed class OrderFulfilmentExamples
     public async Task Translation_errors_retain_named_and_negated_tree_boundaries()
     {
         await using var database = await ExampleDatabase.CreateAsync();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         var rule = CustomerNamedIgnoringCase("alice")
             .Not
             .Named("order.not-alice", "Not Alice");
@@ -135,7 +135,7 @@ public sealed class OrderFulfilmentExamples
     public async Task Null_inequality_has_matching_clr_and_default_ef_semantics()
     {
         await using var database = await ExampleDatabase.CreateAsync();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         var rule = CustomerReferenceIsNot("BLOCKED");
         var inMemoryIds = database.VisibleSeedOrders
             .Where(rule.Matches)
@@ -157,7 +157,7 @@ public sealed class OrderFulfilmentExamples
     public async Task Relational_null_mode_can_deliberately_diverge_from_clr_semantics()
     {
         await using var database = await ExampleDatabase.CreateAsync(useRelationalNulls: true);
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         var rule = CustomerReferenceIsNot("BLOCKED");
 
         Assert.True(rule.Matches(database.VisibleSeedOrders.Single(order => order.Id == 1)));
@@ -172,7 +172,7 @@ public sealed class OrderFulfilmentExamples
     public async Task Exact_string_equality_is_provider_collation_dependent()
     {
         await using var database = await ExampleDatabase.CreateAsync();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         var rule = CustomerNamedExactly("alice");
 
         Assert.DoesNotContain(database.SeedOrders, rule.Matches);
@@ -183,7 +183,7 @@ public sealed class OrderFulfilmentExamples
     public async Task Nullable_navigation_requires_an_explicit_guard_for_in_memory_parity()
     {
         await using var database = await ExampleDatabase.CreateAsync();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         var safe = HasCustomerNamed("Alice");
         var unsafeRule = UnsafeCustomerNamed("Alice");
         var orderWithoutCustomer = database.SeedOrders.Single(order => order.Id == 1);
@@ -205,7 +205,7 @@ public sealed class OrderFulfilmentExamples
     public async Task Global_query_filters_are_additional_repository_criteria()
     {
         await using var database = await ExampleDatabase.CreateAsync();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         var archived = database.SeedOrders.Single(order => order.Id == 5);
         var unrestricted = Spec.Always<Order>();
 
@@ -217,7 +217,7 @@ public sealed class OrderFulfilmentExamples
     public async Task Any_materializes_a_boolean_without_leaking_a_query()
     {
         await using var database = await ExampleDatabase.CreateAsync();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
 
         Assert.True(await repository.AnyAsync(CanShip.And.WorthAtLeast(19_000)));
         Assert.False(await repository.AnyAsync(CanShip.And.WorthAtLeast(25_000)));
@@ -237,14 +237,14 @@ public sealed class OrderFulfilmentExamples
     public async Task Fluent_search_filters_sorts_and_returns_page_metadata()
     {
         await using var database = await ExampleDatabase.CreateAsync();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         var request = Order.Search
             .Matching.Paid
             .Sorted.By.CreatedAt.Desc
             .Then.By.Id.Asc
             .Page(2).OfSize(1);
 
-        var page = await repository.FindAsync(request);
+        var page = await repository.PageAsync(request);
 
         Assert.Equal([2], page.Results.Select(order => order.Id));
         Assert.Equal(2, page.Number);
@@ -399,7 +399,7 @@ public sealed class OrderFulfilmentExamples
     {
         await using var database = await ExampleDatabase.CreateAsync();
         database.CommandCounter.Reset();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -427,7 +427,7 @@ public sealed class OrderFulfilmentExamples
     public async Task Provider_specific_scalar_limit_is_a_structured_translation_error()
     {
         await using var database = await ExampleDatabase.CreateAsync();
-        var repository = new EfOrderRepository(database.Context);
+        var repository = new EntityFrameworkRepository<Order>(database.Context);
         var rule = ProviderTimestampBefore(DateTimeOffset.UtcNow);
 
         var exception = await Assert.ThrowsAsync<SpecificationTranslationException>(() =>
@@ -482,26 +482,6 @@ public sealed class OrderFulfilmentExamples
         return type.HasElementType
             ? ContainsQueryable(type.GetElementType()!)
             : type.IsGenericType && type.GetGenericArguments().Any(ContainsQueryable);
-    }
-
-    private sealed class EfOrderRepository(OrderDbContext context) : IOrderRepository
-    {
-        private readonly RelationalSpecExecutor<Order> _executor = new(context);
-
-        public Task<IReadOnlyList<Order>> ListAsync(
-            Spec<Order> specification,
-            CancellationToken cancellationToken = default) =>
-            _executor.ListAsync(specification, cancellationToken);
-
-        public Task<bool> AnyAsync(
-            Spec<Order> specification,
-            CancellationToken cancellationToken = default) =>
-            _executor.AnyAsync(specification, cancellationToken);
-
-        public Task<Page<Order>> FindAsync(
-            PagedSearch<Order> search,
-            CancellationToken cancellationToken = default) =>
-            _executor.PageAsync(search, cancellationToken);
     }
 
     private static string Normalize(string value) => value.Trim().ToUpperInvariant();

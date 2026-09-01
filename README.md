@@ -86,29 +86,25 @@ The same `Spec<T>` supports short-circuiting in-memory evaluation, complete or
 short-circuit diagnostics, safe rendering, provider-neutral traversal, and
 infrastructure translation.
 
-## Persistence stays behind the repository
+## Persistence stays behind a provider-neutral repository
 
-Application repositories accept rules and return materialized answers:
+The optional repository extension defines `IReadRepository<T>`, a generic,
+read-only contract whose providers accept rules or searches and return
+materialized answers. Applications can depend on it directly or add a domain
+name:
 
 ```csharp symbol="T:FluentSpecifications.Examples.OrderFulfilment.IOrderRepository"
-public interface IOrderRepository
+public interface IOrderRepository : IReadRepository<Order>
 {
-    Task<IReadOnlyList<Order>> ListAsync(
-        Spec<Order> specification,
-        CancellationToken cancellationToken = default);
-
-    Task<bool> AnyAsync(
-        Spec<Order> specification,
-        CancellationToken cancellationToken = default);
-
-    Task<Page<Order>> FindAsync(
-        PagedSearch<Order> search,
-        CancellationToken cancellationToken = default);
 }
 ```
 
-The optional relational EF Core adapter preflights translation and materializes
-`List`, `Page`, `Any`, or `Count` operations. Unsupported filters or sorts produce structured
+The EF Core adapter supplies `EntityFrameworkRepository<T>` as one
+implementation; another database, an HTTP service, or an in-memory provider can
+implement the same contract without referencing EF.
+
+The EF implementation preflights translation and materializes `List`, `Page`,
+`Any`, or `Count` operations. Unsupported filters or sorts produce structured
 translation errors before a `SELECT`; they never trigger implicit client-side
 filtering. Its public API does not accept or return `IQueryable`.
 
@@ -124,8 +120,11 @@ and the limits of SQLite-based testing.
   properties plus compile-time diagnostics.
 - `FluentSpecifications.Expressions` — parameter-rebound expression plans
   without `InvocationExpression`.
+- `FluentSpecifications.Repositories` — optional provider-neutral
+  `IReadRepository<T>` contract.
 - `FluentSpecifications.EntityFrameworkCore` — relational translation
-  preflight and materializing operations for infrastructure.
+  preflight and an `EntityFrameworkRepository<T>` implementation for
+  infrastructure.
 - `OrderFulfilment` — the executable domain example used throughout the tests
   and documentation.
 - `FluentSpecifications.Docs` — Roslyn-based extraction of real source symbols
