@@ -11,6 +11,7 @@ const requiredPages = [
   'defining-rules.md',
   'composition.md',
   'diagnostics.md',
+  'repositories.md',
   'ef-core.md',
   'testing.md',
   'reference.md',
@@ -80,6 +81,17 @@ test('the agreed fluent search is the generated hero example', () => {
   assert.match(gettingStarted, /\.Then\.By\.Id\.Asc/);
   assert.match(gettingStarted, /\.Page\(2\)\.OfSize\(50\)/);
   assert.match(shippingExamples, /var request = Order\.Search/);
+});
+
+test('the repository guide documents a provider-neutral materialized boundary', () => {
+  const guide = read('src/content/docs/repositories.md');
+
+  assert.match(guide, /IReadRepository<T>/);
+  assert.match(guide, /EntityFrameworkRepository<T>/);
+  assert.match(guide, /does not transitively include/);
+  assert.match(guide, /must not expose `IQueryable`/);
+  assert.match(guide, /AnyAsync\(Search<T>\).*CountAsync\(Search<T>\)/s);
+  assert.match(guide, /M:FluentSpecifications\.Repositories\.Tests\.RepositoryContractTests/);
 });
 
 test('every authored C# fence is bound to a Roslyn symbol in its metadata', () => {

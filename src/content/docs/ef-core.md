@@ -1,7 +1,7 @@
 ---
 title: Entity Framework Core
 description: Keep IQueryable inside infrastructure, preflight relational translation, and account explicitly for nulls, collations, navigations, filters, and provider limits.
-order: 5
+order: 6
 section: Infrastructure
 ---
 
@@ -9,46 +9,30 @@ EF Core is one implementation of the provider-neutral repository boundary.
 Applications pass Boolean rules or immutable searches to repositories; they do
 not receive deferred queries, provider expressions, or EF configuration.
 
-## The contract is not tied to EF
+## Use the EF implementation
 
-The optional repository extension exposes the small, read-only
-`IReadRepository<T>` contract with no provider dependency or reference-type
-constraint. Applications can use it directly or specialize it with a domain
-name:
+The [repository extension guide](/docs/repositories/) defines the
+provider-neutral `IReadRepository<T>` contract and its materialization
+semantics. EF Core supplies one implementation for mapped reference types:
 
-```csharp symbol="T:FluentSpecifications.Examples.OrderFulfilment.IOrderRepository"
-public interface IOrderRepository : IReadRepository<Order>
+```csharp symbol="M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Repository_example_executes_the_same_rule_in_sqlite"
+[Fact]
+public async Task Repository_example_executes_the_same_rule_in_sqlite()
 {
+    await using var database = await ExampleDatabase.CreateAsync();
+    IReadRepository<Order> repository =
+        new EntityFrameworkRepository<Order>(database.Context);
+    var ready = CanShip.And(HighPriority.Or.ManualOverride).AndNot.Suspended;
+
+    var orders = await repository.ListAsync(ready);
+
+    Assert.Equal([1, 2], orders.Select(order => order.Id).Order().ToArray());
 }
 ```
 
-The generic contract provides materializing `ListAsync`, `PageAsync`,
-`AnyAsync`, and `CountAsync` operations for specifications and searches. An
-application can also define its own repository shape. EF Core's
-`EntityFrameworkRepository<T>` implements the shared contract; other providers
-can implement it without inheriting EF's mapped-class constraint.
-
-Application code supplies a specification and receives materialized data:
-
-```csharp symbol="M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.FindReadyOrdersAsync(FluentSpecifications.IReadRepository{FluentSpecifications.Examples.OrderFulfilment.Order},System.Threading.CancellationToken)"
-public static Task<IReadOnlyList<Order>> FindReadyOrdersAsync(
-    IReadRepository<Order> repository,
-    CancellationToken cancellationToken = default) =>
-    repository.ListAsync(
-        CanShip.And(HighPriority.Or.ManualOverride),
-        cancellationToken);
-```
-
-Sorting and paging remain outside the Boolean rule but can travel in a separate,
-provider-neutral search description:
-
-```csharp symbol="M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.PriorityShippingPage|local:request"
-var request = Order.Search
-    .Matching.CanShip.And.HighPriority
-    .Sorted.By.CreatedAt.Desc
-    .Then.By.Id.Asc
-    .Page(2).OfSize(50);
-```
+Application code can depend on the interface while infrastructure constructs
+`EntityFrameworkRepository<T>` with its `DbContext`. The provider constraint
+stays on the implementation; it does not spread into the generic contract.
 
 Projection, includes, tracking, split queries, provider functions, and cache
 policy remain infrastructure concerns.

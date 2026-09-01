@@ -1,7 +1,7 @@
 ---
 title: Reference and boundaries
 description: Review the public concepts, generated syntax, package responsibilities, diagnostics, translation errors, and deliberate non-goals of version one.
-order: 7
+order: 8
 section: Reference
 ---
 

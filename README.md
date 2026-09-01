@@ -108,9 +108,11 @@ The EF implementation preflights translation and materializes `List`, `Page`,
 translation errors before a `SELECT`; they never trigger implicit client-side
 filtering. Its public API does not accept or return `IQueryable`.
 
-Read the [EF Core guide](https://fluent-specifications.danmarshall.dev/docs/ef-core/) for
-null semantics, collations, navigations, global filters, provider limitations,
-and the limits of SQLite-based testing.
+Read the [repository guide](https://fluent-specifications.danmarshall.dev/docs/repositories/)
+for contract semantics and alternative-provider guidance. The
+[EF Core guide](https://fluent-specifications.danmarshall.dev/docs/ef-core/)
+covers null semantics, collations, navigations, global filters, provider
+limitations, and the limits of SQLite-based testing.
 
 ## Projects
 

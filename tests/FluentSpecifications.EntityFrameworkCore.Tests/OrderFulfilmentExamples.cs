@@ -35,7 +35,8 @@ public sealed class OrderFulfilmentExamples
     public async Task Repository_example_executes_the_same_rule_in_sqlite()
     {
         await using var database = await ExampleDatabase.CreateAsync();
-        IReadRepository<Order> repository = new EntityFrameworkRepository<Order>(database.Context);
+        IReadRepository<Order> repository =
+            new EntityFrameworkRepository<Order>(database.Context);
         var ready = CanShip.And(HighPriority.Or.ManualOverride).AndNot.Suspended;
 
         var orders = await repository.ListAsync(ready);

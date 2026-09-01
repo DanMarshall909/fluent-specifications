@@ -87,9 +87,10 @@ provider-neutral description. A repository materializes it; application code
 never receives `IQueryable`. `Order.Rules` and `Order.Fields` remain available
 when a rule or field needs to be selected dynamically.
 
-Use the optional `FluentSpecifications.Repositories` project when multiple
-providers should share the materializing `IReadRepository<T>` contract. EF Core
-is one implementation of that contract, not a dependency of it.
+Use the optional [`FluentSpecifications.Repositories`](/docs/repositories/)
+project when multiple providers should share the materializing
+`IReadRepository<T>` contract. EF Core is one implementation of that contract,
+not a dependency of it.
 
 ## Use a rule as domain language
 
@@ -142,6 +143,8 @@ package and executed only by infrastructure.
 
 Read [defining rules](/docs/defining-rules/) for naming and catalog design, then
 [composition](/docs/composition/) for grouping, negation, and parameterized
-rules. If the rules will reach a database, read the [EF Core guide](/docs/ef-core/)
-before assuming an in-memory match will translate. The [prior-art notes](/docs/prior-art/)
-explain the design lineage and where Fluent Specifications deliberately differs.
+rules. Read the [repository guide](/docs/repositories/) before choosing a
+persistence boundary. If the rules will reach a relational database, read the
+[EF Core guide](/docs/ef-core/) before assuming an in-memory match will
+translate. The [prior-art notes](/docs/prior-art/) explain the design lineage
+and where Fluent Specifications deliberately differs.

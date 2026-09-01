@@ -1,7 +1,7 @@
 ---
 title: Testing the behavior
 description: Read the executable examples that define fluent syntax, Boolean laws, diagnostics, expression composition, generator behavior, and EF Core boundaries.
-order: 6
+order: 7
 section: Confidence
 ---
 
@@ -230,7 +230,8 @@ materializing surface:
 [Fact]
 public async Task A_non_ef_provider_can_implement_the_contract_for_value_types()
 {
-    IReadRepository<int> repository = new InMemoryReadRepository<int>([1, 2, 3, 4]);
+    IReadRepository<int> repository =
+        new InMemoryReadRepository<int>([1, 2, 3, 4]);
     var even = Spec.Define<int>("number.even", "Even", number => number % 2 == 0);
     var search = Search.Matching(even)
         .Sorted.By[SearchField.Define<int, int>("Value", number => number)].Desc

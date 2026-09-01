@@ -203,6 +203,7 @@
       "name": "predicate"
     }
   ],
+  "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Repository_example_executes_the_same_rule_in_sqlite": [],
   "M:FluentSpecifications.EntityFrameworkCore.Tests.OrderFulfilmentExamples.Unsupported_filter_fails_before_any_select_is_executed": [
     {
       "offset": 373,
@@ -269,6 +270,12 @@
     {
       "offset": 88,
       "name": "candidate"
+    }
+  ],
+  "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.FindPriorityOrdersAsync(FluentSpecifications.IReadRepository{FluentSpecifications.Examples.OrderFulfilment.Order},System.Threading.CancellationToken)": [
+    {
+      "offset": 184,
+      "name": "search"
     }
   ],
   "M:FluentSpecifications.Examples.OrderFulfilment.ShippingExamples.FindReadyOrdersAsync(FluentSpecifications.IReadRepository{FluentSpecifications.Examples.OrderFulfilment.Order},System.Threading.CancellationToken)": [
@@ -353,55 +360,55 @@
   ],
   "M:FluentSpecifications.Repositories.Tests.RepositoryContractTests.A_non_ef_provider_can_implement_the_contract_for_value_types": [
     {
-      "offset": 160,
+      "offset": 168,
       "name": "candidates"
     },
     {
-      "offset": 207,
+      "offset": 215,
       "name": "id"
     },
     {
-      "offset": 222,
+      "offset": 230,
       "name": "name"
     },
     {
-      "offset": 230,
+      "offset": 238,
       "name": "predicate"
     },
     {
-      "offset": 291,
+      "offset": 299,
       "name": "specification"
     },
     {
-      "offset": 316,
+      "offset": 324,
       "name": "field"
     },
     {
-      "offset": 345,
+      "offset": 353,
       "name": "name"
     },
     {
-      "offset": 354,
+      "offset": 362,
       "name": "selector"
     },
     {
-      "offset": 392,
+      "offset": 400,
       "name": "number"
     },
     {
-      "offset": 402,
+      "offset": 410,
       "name": "size"
     },
     {
-      "offset": 459,
+      "offset": 467,
       "name": "specification"
     },
     {
-      "offset": 578,
+      "offset": 586,
       "name": "specification"
     },
     {
-      "offset": 634,
+      "offset": 642,
       "name": "specification"
     }
   ],

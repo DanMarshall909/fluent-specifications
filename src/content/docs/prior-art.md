@@ -1,7 +1,7 @@
 ---
 title: Prior art and design lineage
 description: See the libraries and policy systems that shaped Fluent Specifications, including the internal Kotlin API that established its terse syntax.
-order: 8
+order: 9
 section: Reference
 ---
 
@@ -60,4 +60,5 @@ That lineage is most visible in three choices:
 The combination is intentional: a small immutable Boolean tree, generated C#
 syntax, structured diagnostics, and provider translation that never exposes
 `IQueryable` through the domain boundary. For the normative decisions, see the
-[reference](/docs/reference/) and [EF Core guide](/docs/ef-core/).
+[repository guide](/docs/repositories/), [reference](/docs/reference/), and
+[EF Core guide](/docs/ef-core/).

@@ -44,4 +44,11 @@ public static class ShippingExamples
         repository.ListAsync(
             CanShip.And(HighPriority.Or.ManualOverride),
             cancellationToken);
+
+    public static Task<Page<Order>> FindPriorityOrdersAsync(
+        IReadRepository<Order> repository,
+        CancellationToken cancellationToken = default) =>
+        repository.PageAsync(
+            PriorityShippingPage(),
+            cancellationToken);
 }
