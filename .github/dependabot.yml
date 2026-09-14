@@ -4,8 +4,22 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      site-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: nuget
     directory: /
     schedule:
       interval: weekly
+    groups:
+      test-tooling:
+        patterns:
+          - Microsoft.NET.Test.Sdk
+      ef-core:
+        patterns:
+          - Microsoft.EntityFrameworkCore.*
+      roslyn:
+        patterns:
+          - Microsoft.CodeAnalysis.*
