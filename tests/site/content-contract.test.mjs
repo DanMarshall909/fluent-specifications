@@ -140,7 +140,7 @@ test('custom-domain and deployment configuration follow the blog convention', ()
   assert.match(workflow, /npm ci/);
   assert.match(workflow, /npm test/);
   assert.match(workflow, /Pack-PackageSuite\.ps1/);
-  assert.match(workflow, /actions\/upload-artifact@v4/);
+  assert.match(workflow, /actions\/upload-artifact@v6/);
   assert.match(workflow, /-getProperty:PackageVersion/);
   assert.match(workflow, /peaceiris\/actions-gh-pages@v4/);
   assert.match(workflow, /destination_dir:\s*\.\/docs/);
