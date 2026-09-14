@@ -147,6 +147,41 @@ test('custom-domain and deployment configuration follow the blog convention', ()
   assert.match(workflow, /force_orphan:\s*true/);
 });
 
+test('GitHub-owned workflow actions use Node 24 runtime majors', () => {
+  const requiredMajors = new Map([
+    ['checkout', 'v5'],
+    ['setup-dotnet', 'v5'],
+    ['setup-node', 'v5'],
+    ['upload-artifact', 'v6'],
+    ['download-artifact', 'v7'],
+  ]);
+  const workflowRoot = join(root, '.github', 'workflows');
+  const observedActions = new Set();
+
+  for (const filename of readdirSync(workflowRoot)) {
+    if (!filename.endsWith('.yml') && !filename.endsWith('.yaml')) {
+      continue;
+    }
+
+    const workflow = readFileSync(join(workflowRoot, filename), 'utf8');
+    for (const match of workflow.matchAll(
+      /uses:\s*actions\/(?<action>checkout|setup-dotnet|setup-node|upload-artifact|download-artifact)@(?<major>v\d+)/g,
+    )) {
+      const { action, major } = match.groups;
+      observedActions.add(action);
+      assert.equal(
+        major,
+        requiredMajors.get(action),
+        `${filename} must use actions/${action}@${requiredMajors.get(action)} for the Node 24 runtime`,
+      );
+    }
+  }
+
+  for (const action of requiredMajors.keys()) {
+    assert.ok(observedActions.has(action), `the workflows must continue to use actions/${action}`);
+  }
+});
+
 test('pull request validation is isolated from deployment and uses least privilege', () => {
   const workflow = read('.github/workflows/publish.yml');
 
