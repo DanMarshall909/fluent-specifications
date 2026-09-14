@@ -216,7 +216,7 @@ test('consolidated dependency updates remain coordinated and grouped', () => {
     [...efInMemory, ...efSqlite, ...efRelational].map(({ version }) => version),
     ['10.0.11', '10.0.11', '10.0.11'],
   );
-  assert.deepEqual([...new Set(roslyn.map(({ version }) => version))], ['5.9.0']);
+  assert.deepEqual([...new Set(roslyn.map(({ version }) => version))], ['5.3.0']);
   assert.equal(packageManifest.dependencies.astro, '7.3.1');
   assert.equal(packageManifest.devDependencies.esbuild, '0.28.2');
   assert.equal(packageManifest.overrides.esbuild, '0.28.2');
