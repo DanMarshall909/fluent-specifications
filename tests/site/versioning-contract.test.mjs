@@ -45,7 +45,7 @@ test('the version gate accepts each immediate semantic-version transition', () =
   }
 });
 
-test('the version gate supports coordinated first releases and idempotent retries', () => {
+test('the version gate supports coordinated first releases and rejects mutable retries', () => {
   const coordinatedFirst = runGate('1.2.0', [], [
     '-FirstStableVersion',
     '1.2.0',
@@ -57,10 +57,10 @@ test('the version gate supports coordinated first releases and idempotent retrie
     0,
     `a new extension should join the current suite:\n${coordinatedFirst.stdout}${coordinatedFirst.stderr}`,
   );
-  assert.equal(
+  assert.notEqual(
     retry.status,
     0,
-    `a partial suite release should be retryable:\n${retry.stdout}${retry.stderr}`,
+    'a new workflow run must not rebuild an already-published package version',
   );
 });
 

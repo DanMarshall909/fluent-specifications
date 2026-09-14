@@ -147,6 +147,23 @@ test('custom-domain and deployment configuration follow the blog convention', ()
   assert.match(workflow, /force_orphan:\s*true/);
 });
 
+test('pull request validation is isolated from deployment and uses least privilege', () => {
+  const workflow = read('.github/workflows/publish.yml');
+
+  assert.match(
+    workflow,
+    /group:\s*fluent-spec-pages-\$\{\{ github\.workflow \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/,
+  );
+  assert.doesNotMatch(workflow, /group:\s*fluent-spec-pages\s*$/m);
+  assert.match(workflow, /verify:[\s\S]*?permissions:\s*\n\s+contents:\s*read/);
+  assert.match(workflow, /deploy:[\s\S]*?needs:\s*verify/);
+  assert.match(workflow, /deploy:[\s\S]*?permissions:\s*\n\s+contents:\s*write/);
+  assert.match(
+    workflow,
+    /deploy:[\s\S]*?if:\s*github\.event_name != 'pull_request' && github\.ref == 'refs\/heads\/main'/,
+  );
+});
+
 test('NuGet publication uses the manually selected project version and trusted publishing', () => {
   const workflow = read('.github/workflows/publish-nuget.yml');
   const readme = read('README.md');
@@ -186,7 +203,6 @@ test('NuGet publication uses the manually selected project version and trusted p
   assert.doesNotMatch(workflow, /VERSION_PREFIX|BASE_COMMIT_COUNT|git rev-list/);
   assert.doesNotMatch(workflow, /-p:PackageVersion=/);
   assert.match(workflow, /https:\/\/api\.nuget\.org\/v3\/index\.json/);
-  assert.match(workflow, /--skip-duplicate/);
   assert.equal(
     [...workflow.matchAll(/dotnet nuget push/g)].length,
     1,
@@ -234,6 +250,16 @@ test('consolidated dependency updates remain coordinated and grouped', () => {
   assert.match(dependabot, /groups:\s*\n\s+test-tooling:/);
   assert.match(dependabot, /\n\s+ef-core:\s*\n\s+patterns:/);
   assert.match(dependabot, /\n\s+roslyn:\s*\n\s+patterns:/);
+});
+
+test('NuGet publication treats workflow input as data and fails closed on duplicate versions', () => {
+  const workflow = read('.github/workflows/publish-nuget.yml');
+
+  assert.match(workflow, /RELEASE_VERSION:\s*\$\{\{ inputs\.release_version \}\}/);
+  assert.match(workflow, /"\$RELEASE_VERSION"/);
+  assert.doesNotMatch(workflow, /run:\s*\|[\s\S]*?\$\{\{ inputs\.release_version \}\}/);
+  assert.doesNotMatch(workflow, /-AllowAlreadyPublished/);
+  assert.doesNotMatch(workflow, /--skip-duplicate/);
 });
 
 test('all package-producing workflows read one version and pack the coordinated suite', () => {
