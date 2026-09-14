@@ -1,0 +1,134 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#f7f5ef"><title>Defining rules · Fluent Specifications</title><meta name="description" content="Build specification catalogs with stable identities, useful failure metadata, pure predicates, and generated language that stays close to the domain."><link rel="canonical" href="https://fluent-specifications.danmarshall.dev/docs/defining-rules/"><meta property="og:type" content="website"><meta property="og:site_name" content="Fluent Specifications"><meta property="og:title" content="Defining rules · Fluent Specifications"><meta property="og:description" content="Build specification catalogs with stable identities, useful failure metadata, pure predicates, and generated language that stays close to the domain."><meta property="og:url" content="https://fluent-specifications.danmarshall.dev/docs/defining-rules/"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Defining rules · Fluent Specifications"><meta name="twitter:description" content="Build specification catalogs with stable identities, useful failure metadata, pure predicates, and generated language that stays close to the domain."><link rel="stylesheet" href="/_astro/BaseLayout.BOzojXuf.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><header class="site-header"><div class="site-shell header-inner"><a class="brand" href="/" aria-label="Fluent Specifications home"><span class="brand-mark" aria-hidden="true">fs</span><span>Fluent Specifications</span></a><nav class="primary-nav" aria-label="Primary navigation"><a class="active" href="/docs/getting-started/">Docs</a><a href="/docs/ef-core/">EF Core</a><a href="/docs/testing/">Tests</a><a href="https://github.com/DanMarshall909/fluent-specifications">GitHub</a></nav></div></header><main id="main-content"><div class="site-shell docs-grid"><aside class="docs-sidebar" aria-label="Documentation navigation"><p class="sidebar-label">Documentation</p><nav><ol><li><a href="/docs/getting-started/">Getting started</a></li><li><a class="active" aria-current="page" href="/docs/defining-rules/">Defining rules</a></li><li><a href="/docs/composition/">Composition</a></li><li><a href="/docs/diagnostics/">Diagnostics</a></li><li><a href="/docs/repositories/">Repository extension</a></li><li><a href="/docs/ef-core/">Entity Framework Core</a></li><li><a href="/docs/testing/">Testing the behavior</a></li><li><a href="/docs/reference/">Reference and boundaries</a></li><li><a href="/docs/prior-art/">Prior art and design lineage</a></li></ol></nav></aside><article class="doc-article"><header class="doc-header"><p class="eyebrow">Core concepts</p><h1>Defining rules</h1><p class="doc-lead">Build specification catalogs with stable identities, useful failure metadata, pure predicates, and generated language that stays close to the domain.</p></header><div class="prose"><p>A good catalog feels less like a framework surface and more like a small domain
+vocabulary. Keep the names positive, the predicates pure, and the metadata safe
+to show in logs or user-facing explanations.</p>
+<h2 id="start-with-a-named-leaf">Start with a named leaf</h2>
+<p>Every leaf requires a stable ID, a display name, and an expression over the
+candidate type:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> static</span><span style="color:#E1E4E8"> Spec</span><span style="color:#F97583">&lt;</span><span style="color:#E1E4E8">Order</span><span style="color:#F97583">&gt;</span><span style="color:#B392F0"> Paid</span><span style="color:#F97583"> =&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">    Spec.</span><span style="color:#B392F0">Define</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;(</span><span class="parameter-hint" data-parameter-hint="id:" aria-hidden="true"></span><span style="color:#9ECBFF">"order.paid"</span><span style="color:#E1E4E8">, </span><span class="parameter-hint" data-parameter-hint="name:" aria-hidden="true"></span><span style="color:#9ECBFF">"Paid"</span><span style="color:#E1E4E8">, </span><span class="parameter-hint" data-parameter-hint="predicate:" aria-hidden="true"></span><span style="color:#B392F0">order</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> order.Paid);</span></span></code></pre>
+<p>The ID is for diagnostics and telemetry; it is not object equality. The name is
+for people and concise rendering. Neither should be derived from expression
+text.</p>
+<p>Prefer names that describe the positive condition naturally:</p>
+<table>
+<thead>
+<tr>
+<th>Prefer</th>
+<th>Avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Paid</code></td>
+<td><code>IsPaidSpecification</code></td>
+</tr>
+<tr>
+<td><code>HighPriority</code></td>
+<td><code>CheckWhetherPriority</code></td>
+</tr>
+<tr>
+<td><code>HasDeliveryAddress</code></td>
+<td><code>OrderSatisfiesAddressRule</code></td>
+</tr>
+<tr>
+<td><code>CanShip</code></td>
+<td><code>ShippingSpecification</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>Is</code> is not forbidden, but it usually adds noise once the value is already
+clearly Boolean.</p>
+<h2 id="parameterized-rules">Parameterized rules</h2>
+<p>Arguments belong on catalog methods. Capture the supplied value in the
+expression rather than reading mutable ambient state:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> static</span><span style="color:#B392F0"> Spec</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt; </span><span style="color:#B392F0">WorthAtLeast</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">int</span><span style="color:#B392F0"> minimumCents</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">=&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">    Spec.</span><span style="color:#B392F0">Define</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;(</span></span>
+<span class="line"><span style="color:#9ECBFF">        </span><span class="parameter-hint" data-parameter-hint="id:" aria-hidden="true"></span><span style="color:#9ECBFF">"order.worth-at-least"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#9ECBFF">        </span><span class="parameter-hint" data-parameter-hint="name:" aria-hidden="true"></span><span style="color:#9ECBFF">"Worth at least"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        </span><span class="parameter-hint" data-parameter-hint="predicate:" aria-hidden="true"></span><span style="color:#B392F0">order</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> order.TotalCents </span><span style="color:#F97583">&gt;=</span><span style="color:#E1E4E8"> minimumCents);</span></span></code></pre>
+<p>Obtain changing values before constructing the rule. For example, pass a
+cutoff into <code>CreatedBefore(cutoff)</code> instead of reading the current clock inside
+the predicate. This makes both in-memory evaluation and provider
+parameterization predictable.</p>
+<h2 id="name-important-compositions">Name important compositions</h2>
+<p>A named composition preserves its child tree while presenting a useful domain
+boundary:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Expose</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> static</span><span style="color:#E1E4E8"> Spec</span><span style="color:#F97583">&lt;</span><span style="color:#E1E4E8">Order</span><span style="color:#F97583">&gt;</span><span style="color:#B392F0"> CanShip</span><span style="color:#F97583"> =&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">    Paid</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">And</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="right:" aria-hidden="true"></span><span style="color:#E1E4E8">HasDeliveryAddress)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">AndNot</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="right:" aria-hidden="true"></span><span style="color:#E1E4E8">Suspended)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">Named</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#9ECBFF">            </span><span class="parameter-hint" data-parameter-hint="id:" aria-hidden="true"></span><span style="color:#9ECBFF">"order.can-ship"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#9ECBFF">            </span><span class="parameter-hint" data-parameter-hint="name:" aria-hidden="true"></span><span style="color:#9ECBFF">"Can ship"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#9ECBFF">            </span><span class="parameter-hint" data-parameter-hint="failure:" aria-hidden="true"></span><span style="color:#9ECBFF">"The order is not ready to ship."</span><span style="color:#E1E4E8">);</span></span></code></pre>
+<p>Concise rendering stops at <code>Can ship</code>; diagnostics and translators can still
+walk the paid, address, and suspension rules beneath it.</p>
+<p>Failure messages should describe the failed condition without exposing
+candidate values. Optional codes and paths are useful for machines; explicit
+context is snapshotted and should contain only deliberately non-sensitive data.</p>
+<h2 id="choose-what-becomes-a-domain-property">Choose what becomes a domain property</h2>
+<p><code>[Expose]</code> generates a Boolean extension property for an argument-free rule.
+Use it for domain concepts that genuinely improve a call site, such as
+<code>order.CanShip</code>. Parameterized rules cannot become properties because their
+arguments would have nowhere to go.</p>
+<p>The generator caches zero-argument rules as stable definitions. Parameterized
+rules are constructed per invocation, so argument values are never used as a
+global cache key.</p>
+<h2 id="catalog-shapes-are-intentionally-strict">Catalog shapes are intentionally strict</h2>
+<p>A catalog must be a top-level, non-generic, static partial class. Rules may be
+public static get-only properties or public static readonly fields. Mutable
+fields, settable properties, generic rule methods, and <code>ref</code> or <code>out</code>
+parameters are compile-time errors rather than members that quietly disappear:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> Unsupported_rule_shapes_are_reported_instead_of_silently_disappearing</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    const</span><span style="color:#F97583"> string</span><span style="color:#B392F0"> source</span><span style="color:#F97583"> =</span><span style="color:#9ECBFF"> """</span></span>
+<span class="line"><span style="color:#9ECBFF">        using FluentSpecifications;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#9ECBFF">        public sealed class Order;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#9ECBFF">        [SpecificationSet&lt;Order&gt;]</span></span>
+<span class="line"><span style="color:#9ECBFF">        public static partial class OrderRules</span></span>
+<span class="line"><span style="color:#9ECBFF">        {</span></span>
+<span class="line"><span style="color:#9ECBFF">            public static Spec&lt;Order&gt; Mutable =</span></span>
+<span class="line"><span style="color:#9ECBFF">                Spec.Define&lt;Order&gt;("order.mutable", "Mutable", _ =&gt; true);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#9ECBFF">            public static Spec&lt;Order&gt; Settable { get; set; } =</span></span>
+<span class="line"><span style="color:#9ECBFF">                Spec.Define&lt;Order&gt;("order.settable", "Settable", _ =&gt; true);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#9ECBFF">            public static Spec&lt;Order&gt; Generic&lt;T&gt;(T value) =&gt;</span></span>
+<span class="line"><span style="color:#9ECBFF">                Spec.Define&lt;Order&gt;("order.generic", "Generic", _ =&gt; value != null);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#9ECBFF">            public static Spec&lt;Order&gt; WithOutput(out int value)</span></span>
+<span class="line"><span style="color:#9ECBFF">            {</span></span>
+<span class="line"><span style="color:#9ECBFF">                value = 1;</span></span>
+<span class="line"><span style="color:#9ECBFF">                return Spec.Define&lt;Order&gt;("order.output", "Output", _ =&gt; true);</span></span>
+<span class="line"><span style="color:#9ECBFF">            }</span></span>
+<span class="line"><span style="color:#9ECBFF">        }</span></span>
+<span class="line"><span style="color:#9ECBFF">        """</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> result</span><span style="color:#F97583"> =</span><span style="color:#B392F0"> Run</span><span style="color:#E1E4E8">(source);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> diagnostics</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> result.Diagnostics</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">Where</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="predicate:" aria-hidden="true"></span><span style="color:#B392F0">item</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> item.Id </span><span style="color:#F97583">==</span><span style="color:#9ECBFF"> "FSPEC004"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">ToArray</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">4</span><span style="color:#E1E4E8">, diagnostics.Length);</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">All</span><span style="color:#E1E4E8">(diagnostics, </span><span style="color:#B392F0">diagnostic</span><span style="color:#F97583"> =&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">        Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">(DiagnosticSeverity.Error, diagnostic.Severity));</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>The source generator also diagnoses invalid catalogs, exposed names that hide
+instance members, and projects that do not use C# 14.</p>
+<h2 id="keep-predicates-boring">Keep predicates boring</h2>
+<p>Specification predicates should be deterministic and free of I/O. Avoid:</p>
+<ul>
+<li>mutable global or closure state;</li>
+<li>clocks read from inside the expression;</li>
+<li>network, filesystem, or database calls;</li>
+<li>logging or mutation as a side effect; and</li>
+<li>domain methods unless every target provider is known to translate them.</li>
+</ul>
+<p>Async rules are a separate abstraction. A synchronous Boolean expression is
+what makes one rule tree usable for memory, diagnostics, and provider
+translation.</p>
+</div><nav class="doc-pagination" aria-label="Adjacent documentation"><a href="/docs/getting-started/"><span>Previous</span><strong>Getting started</strong></a><a class="next" href="/docs/composition/"><span>Next</span><strong>Composition</strong></a></nav></article><aside class="page-toc" aria-label="On this page"><p class="sidebar-label">On this page</p><ol><li><a href="#start-with-a-named-leaf">Start with a named leaf</a></li><li><a href="#parameterized-rules">Parameterized rules</a></li><li><a href="#name-important-compositions">Name important compositions</a></li><li><a href="#choose-what-becomes-a-domain-property">Choose what becomes a domain property</a></li><li><a href="#catalog-shapes-are-intentionally-strict">Catalog shapes are intentionally strict</a></li><li><a href="#keep-predicates-boring">Keep predicates boring</a></li></ol></aside></div></main><footer class="site-footer"><div class="site-shell footer-inner"><p>Business rules should sound like the business.</p><p>Designed by Dan Marshall.</p></div></footer></body></html>

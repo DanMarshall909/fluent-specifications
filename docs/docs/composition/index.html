@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#f7f5ef"><title>Composition · Fluent Specifications</title><meta name="description" content="Combine specifications with readable connector properties, explicit grouping, word-based negation, parameterized rules, constants, and aggregate laws."><link rel="canonical" href="https://fluent-specifications.danmarshall.dev/docs/composition/"><meta property="og:type" content="website"><meta property="og:site_name" content="Fluent Specifications"><meta property="og:title" content="Composition · Fluent Specifications"><meta property="og:description" content="Combine specifications with readable connector properties, explicit grouping, word-based negation, parameterized rules, constants, and aggregate laws."><meta property="og:url" content="https://fluent-specifications.danmarshall.dev/docs/composition/"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Composition · Fluent Specifications"><meta name="twitter:description" content="Combine specifications with readable connector properties, explicit grouping, word-based negation, parameterized rules, constants, and aggregate laws."><link rel="stylesheet" href="/_astro/BaseLayout.BOzojXuf.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><header class="site-header"><div class="site-shell header-inner"><a class="brand" href="/" aria-label="Fluent Specifications home"><span class="brand-mark" aria-hidden="true">fs</span><span>Fluent Specifications</span></a><nav class="primary-nav" aria-label="Primary navigation"><a class="active" href="/docs/getting-started/">Docs</a><a href="/docs/ef-core/">EF Core</a><a href="/docs/testing/">Tests</a><a href="https://github.com/DanMarshall909/fluent-specifications">GitHub</a></nav></div></header><main id="main-content"><div class="site-shell docs-grid"><aside class="docs-sidebar" aria-label="Documentation navigation"><p class="sidebar-label">Documentation</p><nav><ol><li><a href="/docs/getting-started/">Getting started</a></li><li><a href="/docs/defining-rules/">Defining rules</a></li><li><a class="active" aria-current="page" href="/docs/composition/">Composition</a></li><li><a href="/docs/diagnostics/">Diagnostics</a></li><li><a href="/docs/repositories/">Repository extension</a></li><li><a href="/docs/ef-core/">Entity Framework Core</a></li><li><a href="/docs/testing/">Testing the behavior</a></li><li><a href="/docs/reference/">Reference and boundaries</a></li><li><a href="/docs/prior-art/">Prior art and design lineage</a></li></ol></nav></aside><article class="doc-article"><header class="doc-header"><p class="eyebrow">Core concepts</p><h1>Composition</h1><p class="doc-lead">Combine specifications with readable connector properties, explicit grouping, word-based negation, parameterized rules, constants, and aggregate laws.</p></header><div class="prose"><p>Composition always returns another <code>Spec&lt;T&gt;</code>. It never collapses into a
+delegate or expression that has forgotten its named children.</p>
+<h2 id="zero-argument-rules-stay-terse">Zero-argument rules stay terse</h2>
+<p>Generated connector properties remove parentheses when the right-hand rule is
+already named by the catalog:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> Zero_argument_rules_compose_without_parentheses</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> rule</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> CanShip.And.HighPriority.AndNot.Suspended;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">True</span><span style="color:#E1E4E8">(rule.</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">        Paid</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        HasAddress</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        HighPriority</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">)));</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">False</span><span style="color:#E1E4E8">(rule.</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">        Paid</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        HasAddress</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        HighPriority</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        Suspended</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">)));</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>The connectors use words rather than overloaded <code>&amp;</code>, <code>|</code>, or <code>!</code> operators:</p>
+<table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>a.And.b</code></td>
+<td>both rules must pass</td>
+</tr>
+<tr>
+<td><code>a.Or.b</code></td>
+<td>either rule may pass</td>
+</tr>
+<tr>
+<td><code>a.AndNot.b</code></td>
+<td><code>a</code> passes and <code>b</code> does not</td>
+</tr>
+<tr>
+<td><code>a.OrNot.b</code></td>
+<td><code>a</code> passes or <code>b</code> does not</td>
+</tr>
+<tr>
+<td><code>a.Not</code></td>
+<td>invert <code>a</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="parentheses-mean-something">Parentheses mean something</h2>
+<p>Invoke a connector when the right side is grouped or computed dynamically:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> Connector_invocation_supports_explicit_grouping</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> rule</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> CanShip.</span><span style="color:#B392F0">And</span><span style="color:#E1E4E8">(HighPriority.Or.ManualOverride);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">True</span><span style="color:#E1E4E8">(rule.</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="candidate:" aria-hidden="true"></span><span style="color:#F97583">new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">        Paid</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        HasAddress</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        ManualOverride</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">)));</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">False</span><span style="color:#E1E4E8">(rule.</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="candidate:" aria-hidden="true"></span><span style="color:#F97583">new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Paid</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">HasAddress</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">)));</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>This makes <code>CanShip.And(HighPriority.Or.ManualOverride)</code> visibly different from
+a flat chain. Rendering preserves the same grouping.</p>
+<h2 id="arguments-keep-their-parentheses">Arguments keep their parentheses</h2>
+<p>Parameterized rules remain methods, but the connective itself stays terse:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> Parameterized_rules_keep_parentheses_only_for_arguments</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> rule</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> CanShip.And.</span><span style="color:#B392F0">WorthAtLeast</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">100m</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">True</span><span style="color:#E1E4E8">(rule.</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Paid</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">HasAddress</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Total</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">150m</span><span style="color:#E1E4E8">)));</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">False</span><span style="color:#E1E4E8">(rule.</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Paid</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">HasAddress</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Total</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">50m</span><span style="color:#E1E4E8">)));</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>The generated surface preserves overloads, <code>params</code>, optional arguments, and
+escaped C# keywords:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> Params_overloads_and_keyword_parameter_names_survive_generation</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> order</span><span style="color:#F97583"> =</span><span style="color:#F97583"> new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">        Paid</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        HasAddress</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        Total</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">150m</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">        Region</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"AU"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> rule</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> CanShip</span></span>
+<span class="line"><span style="color:#E1E4E8">        .And.</span><span style="color:#B392F0">InAnyRegion</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="regions:" aria-hidden="true"></span><span style="color:#9ECBFF">"AU"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"NZ"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .And.</span><span style="color:#B392F0">RegionNamed</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">@class</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"AU"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .And.</span><span style="color:#B392F0">WorthAtLeast</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">100L</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">True</span><span style="color:#E1E4E8">(rule.</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(order));</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>These awkward signatures are covered because source-generator bugs tend to
+hide in precisely this kind of ordinary C# detail.</p>
+<h2 id="negation-uses-words">Negation uses words</h2>
+<p>Use <code>Suspended.Not</code> for a standalone negation, or <code>AndNot</code> and <code>OrNot</code> inside a
+chain. Double negation preserves behavior. A failed unnamed negation uses a
+neutral diagnostic message rather than reusing the positive rule’s failure
+text as though it described the opposite condition.</p>
+<h2 id="constants-and-empty-aggregates">Constants and empty aggregates</h2>
+<p><code>Always&lt;T&gt;()</code> and <code>Never&lt;T&gt;()</code> make the absence of a restriction explicit.
+<code>AllOf</code> and <code>AnyOf</code> take immutable snapshots of their input and enumerate it
+exactly once.</p>
+<p>The empty cases follow Boolean identity laws:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> Empty_aggregates_follow_boolean_identity_laws</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">True</span><span style="color:#E1E4E8">(Spec.</span><span style="color:#B392F0">AllOf</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="specifications:" aria-hidden="true"></span><span style="color:#E1E4E8">Array.</span><span style="color:#B392F0">Empty</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Spec</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;&gt;()).</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="candidate:" aria-hidden="true"></span><span style="color:#F97583">new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8">()));</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">False</span><span style="color:#E1E4E8">(Spec.</span><span style="color:#B392F0">AnyOf</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="specifications:" aria-hidden="true"></span><span style="color:#E1E4E8">Array.</span><span style="color:#B392F0">Empty</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Spec</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;&gt;()).</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="candidate:" aria-hidden="true"></span><span style="color:#F97583">new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8">()));</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>An empty disjunction does not mean “return everything.” Use <code>Always&lt;T&gt;()</code> when
+the caller intentionally supplies no restriction.</p>
+<h2 id="evaluation-order">Evaluation order</h2>
+<p><code>Matches</code> evaluates left to right and short-circuits just like normal Boolean
+code:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> Matches_short_circuits_and_from_left_to_right</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> probe</span><span style="color:#F97583"> =</span><span style="color:#F97583"> new</span><span style="color:#B392F0"> EvaluationProbe</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> left</span><span style="color:#F97583"> =</span><span style="color:#B392F0"> Rule</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="name:" aria-hidden="true"></span><span style="color:#9ECBFF">"left"</span><span style="color:#E1E4E8">, </span><span class="parameter-hint" data-parameter-hint="predicate:" aria-hidden="true"></span><span style="color:#B392F0">_</span><span style="color:#F97583"> =&gt;</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> right</span><span style="color:#F97583"> =</span><span style="color:#B392F0"> Rule</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="name:" aria-hidden="true"></span><span style="color:#9ECBFF">"right"</span><span style="color:#E1E4E8">, </span><span class="parameter-hint" data-parameter-hint="predicate:" aria-hidden="true"></span><span style="color:#B392F0">_</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> probe.</span><span style="color:#B392F0">Return</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="result:" aria-hidden="true"></span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">));</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">False</span><span style="color:#E1E4E8">(left.</span><span style="color:#B392F0">And</span><span style="color:#E1E4E8">(right).</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="candidate:" aria-hidden="true"></span><span style="color:#F97583">new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8">()));</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">False</span><span style="color:#E1E4E8">(probe.WasEvaluated);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>That behavior is suitable for a fast yes-or-no decision. Diagnostic evaluation
+has a different default because an explanation often needs to inspect every
+relevant branch.</p>
+</div><nav class="doc-pagination" aria-label="Adjacent documentation"><a href="/docs/defining-rules/"><span>Previous</span><strong>Defining rules</strong></a><a class="next" href="/docs/diagnostics/"><span>Next</span><strong>Diagnostics</strong></a></nav></article><aside class="page-toc" aria-label="On this page"><p class="sidebar-label">On this page</p><ol><li><a href="#zero-argument-rules-stay-terse">Zero-argument rules stay terse</a></li><li><a href="#parentheses-mean-something">Parentheses mean something</a></li><li><a href="#arguments-keep-their-parentheses">Arguments keep their parentheses</a></li><li><a href="#negation-uses-words">Negation uses words</a></li><li><a href="#constants-and-empty-aggregates">Constants and empty aggregates</a></li><li><a href="#evaluation-order">Evaluation order</a></li></ol></aside></div></main><footer class="site-footer"><div class="site-shell footer-inner"><p>Business rules should sound like the business.</p><p>Designed by Dan Marshall.</p></div></footer></body></html>

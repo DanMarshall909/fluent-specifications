@@ -1,0 +1,159 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#f7f5ef"><title>Entity Framework Core · Fluent Specifications</title><meta name="description" content="Keep IQueryable inside infrastructure, preflight relational translation, and account explicitly for nulls, collations, navigations, filters, and provider limits."><link rel="canonical" href="https://fluent-specifications.danmarshall.dev/docs/ef-core/"><meta property="og:type" content="website"><meta property="og:site_name" content="Fluent Specifications"><meta property="og:title" content="Entity Framework Core · Fluent Specifications"><meta property="og:description" content="Keep IQueryable inside infrastructure, preflight relational translation, and account explicitly for nulls, collations, navigations, filters, and provider limits."><meta property="og:url" content="https://fluent-specifications.danmarshall.dev/docs/ef-core/"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Entity Framework Core · Fluent Specifications"><meta name="twitter:description" content="Keep IQueryable inside infrastructure, preflight relational translation, and account explicitly for nulls, collations, navigations, filters, and provider limits."><link rel="stylesheet" href="/_astro/BaseLayout.BOzojXuf.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><header class="site-header"><div class="site-shell header-inner"><a class="brand" href="/" aria-label="Fluent Specifications home"><span class="brand-mark" aria-hidden="true">fs</span><span>Fluent Specifications</span></a><nav class="primary-nav" aria-label="Primary navigation"><a class="active" href="/docs/getting-started/">Docs</a><a href="/docs/ef-core/">EF Core</a><a href="/docs/testing/">Tests</a><a href="https://github.com/DanMarshall909/fluent-specifications">GitHub</a></nav></div></header><main id="main-content"><div class="site-shell docs-grid"><aside class="docs-sidebar" aria-label="Documentation navigation"><p class="sidebar-label">Documentation</p><nav><ol><li><a href="/docs/getting-started/">Getting started</a></li><li><a href="/docs/defining-rules/">Defining rules</a></li><li><a href="/docs/composition/">Composition</a></li><li><a href="/docs/diagnostics/">Diagnostics</a></li><li><a href="/docs/repositories/">Repository extension</a></li><li><a class="active" aria-current="page" href="/docs/ef-core/">Entity Framework Core</a></li><li><a href="/docs/testing/">Testing the behavior</a></li><li><a href="/docs/reference/">Reference and boundaries</a></li><li><a href="/docs/prior-art/">Prior art and design lineage</a></li></ol></nav></aside><article class="doc-article"><header class="doc-header"><p class="eyebrow">Infrastructure</p><h1>Entity Framework Core</h1><p class="doc-lead">Keep IQueryable inside infrastructure, preflight relational translation, and account explicitly for nulls, collations, navigations, filters, and provider limits.</p></header><div class="prose"><p>EF Core is one implementation of the provider-neutral repository boundary.
+Applications pass Boolean rules or immutable searches to repositories; they do
+not receive deferred queries, provider expressions, or EF configuration.</p>
+<h2 id="use-the-ef-implementation">Use the EF implementation</h2>
+<p>The <a href="/docs/repositories/">repository extension guide</a> defines the
+provider-neutral <code>IReadRepository&lt;T&gt;</code> contract and its materialization
+semantics. Install the starter directly for its source generator and add the EF
+infrastructure package; the latter brings the repository and expression
+extensions transitively:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="shell"><code><span class="line"><span style="color:#B392F0">dotnet</span><span style="color:#9ECBFF"> add</span><span style="color:#9ECBFF"> package</span><span style="color:#9ECBFF"> DanMarshall.FluentSpecifications</span><span style="color:#79B8FF"> --version</span><span style="color:#79B8FF"> 1.2.0</span></span>
+<span class="line"><span style="color:#B392F0">dotnet</span><span style="color:#9ECBFF"> add</span><span style="color:#9ECBFF"> package</span><span style="color:#9ECBFF"> DanMarshall.FluentSpecifications.EntityFrameworkCore</span><span style="color:#79B8FF"> --version</span><span style="color:#79B8FF"> 1.2.0</span></span></code></pre>
+<p>EF Core then supplies one implementation for mapped reference types:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> async</span><span style="color:#B392F0"> Task</span><span style="color:#B392F0"> Repository_example_executes_the_same_rule_in_sqlite</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    await</span><span style="color:#F97583"> using</span><span style="color:#F97583"> var</span><span style="color:#B392F0"> database</span><span style="color:#F97583"> =</span><span style="color:#F97583"> await</span><span style="color:#E1E4E8"> ExampleDatabase.</span><span style="color:#B392F0">CreateAsync</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#B392F0">    IReadRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt; </span><span style="color:#B392F0">repository</span><span style="color:#F97583"> =</span></span>
+<span class="line"><span style="color:#F97583">        new</span><span style="color:#B392F0"> EntityFrameworkRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;(database.Context);</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> ready</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> CanShip.</span><span style="color:#B392F0">And</span><span style="color:#E1E4E8">(HighPriority.Or.ManualOverride).AndNot.Suspended;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> orders</span><span style="color:#F97583"> =</span><span style="color:#F97583"> await</span><span style="color:#E1E4E8"> repository.</span><span style="color:#B392F0">ListAsync</span><span style="color:#E1E4E8">(ready);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">([</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">], orders.</span><span style="color:#B392F0">Select</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">order</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> order.Id).</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">().</span><span style="color:#B392F0">ToArray</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>Application code can depend on the interface while infrastructure constructs
+<code>EntityFrameworkRepository&lt;T&gt;</code> with its <code>DbContext</code>. The provider constraint
+stays on the implementation; it does not spread into the generic contract.</p>
+<p>Projection, includes, tracking, split queries, provider functions, and cache
+policy remain infrastructure concerns.</p>
+<h2 id="translation-is-checked-before-execution">Translation is checked before execution</h2>
+<p>The EF implementation composes the complete expression and asks the configured
+provider to translate it before executing a command. An unsupported filter
+produces structured rule and tree-path errors; it does not fetch an unbounded
+set and retry in memory:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> async</span><span style="color:#B392F0"> Task</span><span style="color:#B392F0"> Unsupported_filter_fails_before_any_select_is_executed</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    await</span><span style="color:#F97583"> using</span><span style="color:#F97583"> var</span><span style="color:#B392F0"> database</span><span style="color:#F97583"> =</span><span style="color:#F97583"> await</span><span style="color:#E1E4E8"> ExampleDatabase.</span><span style="color:#B392F0">CreateAsync</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    database.CommandCounter.</span><span style="color:#B392F0">Reset</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> repository</span><span style="color:#F97583"> =</span><span style="color:#F97583"> new</span><span style="color:#B392F0"> EntityFrameworkRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;(database.Context);</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> inMemoryCandidate</span><span style="color:#F97583"> =</span><span style="color:#F97583"> new</span><span style="color:#B392F0"> Order</span><span style="color:#E1E4E8"> { CustomerName </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "ALICE"</span><span style="color:#E1E4E8"> };</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> rule</span><span style="color:#F97583"> =</span><span style="color:#B392F0"> CustomerNamedIgnoringCase</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="expected:" aria-hidden="true"></span><span style="color:#9ECBFF">"alice"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">True</span><span style="color:#E1E4E8">(rule.</span><span style="color:#B392F0">Matches</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="candidate:" aria-hidden="true"></span><span style="color:#E1E4E8">inMemoryCandidate));</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> exception</span><span style="color:#F97583"> =</span><span style="color:#F97583"> await</span><span style="color:#E1E4E8"> Assert.</span><span style="color:#B392F0">ThrowsAsync</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">SpecificationTranslationException</span><span style="color:#E1E4E8">&gt;(() </span><span style="color:#F97583">=&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">        repository.</span><span style="color:#B392F0">ListAsync</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="specification:" aria-hidden="true"></span><span style="color:#E1E4E8">rule));</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> error</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> Assert.</span><span style="color:#B392F0">Single</span><span style="color:#E1E4E8">(exception.Errors);</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"ef-core-translation-failed"</span><span style="color:#E1E4E8">, error.Code);</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"order.customer-named-ignoring-case"</span><span style="color:#E1E4E8">, error.RuleId);</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"$"</span><span style="color:#E1E4E8">, error.NodePath);</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, database.CommandCounter.ReaderExecutions);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>Modern EF Core also rejects untranslatable filter expressions rather than
+silently evaluating them on the client. Only the top-level projection permits
+limited client evaluation. See Microsoft’s <a href="https://learn.microsoft.com/en-us/ef/core/querying/client-eval">client versus server evaluation</a>
+guidance.</p>
+<p><code>ListAsync</code>, <code>PageAsync</code>, <code>AnyAsync</code>, and <code>CountAsync</code> return materialized
+answers. A paged search is fully preflighted before the adapter counts or loads
+rows; its count ignores sorting and paging and becomes <code>Page&lt;T&gt;.TotalResults</code>.
+The adapter’s exported API is guarded against accidentally accepting or
+returning <code>IQueryable</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> Public_ef_adapter_api_never_returns_or_accepts_iqueryable</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> offendingTypes</span><span style="color:#F97583"> =</span><span style="color:#F97583"> typeof</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">RelationalSpecExecutor</span><span style="color:#E1E4E8">&lt;&gt;).Assembly</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">GetExportedTypes</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">SelectMany</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="selector:" aria-hidden="true"></span><span style="color:#E1E4E8">PublicApiTypes)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">Where</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="predicate:" aria-hidden="true"></span><span style="color:#E1E4E8">ContainsQueryable)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">ToArray</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Empty</span><span style="color:#E1E4E8">(offendingTypes);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<h2 id="in-memory-success-is-not-translation-proof">In-memory success is not translation proof</h2>
+<p>A domain method or a <code>StringComparison</code> overload can work perfectly through
+<code>Matches</code> and still be unsupported by the provider. Treat translation as a
+capability of a particular provider, model, and EF version—not of the C#
+expression in isolation.</p>
+<p>Captured rule arguments should become database parameters. Do not read mutable
+ambient state or clocks from inside a predicate.</p>
+<h2 id="null-semantics-can-diverge">Null semantics can diverge</h2>
+<p>EF normally adds SQL compensation so nullable comparisons behave more like CLR
+two-valued logic. The example proves parity for nullable inequality under the
+default mode:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> async</span><span style="color:#B392F0"> Task</span><span style="color:#B392F0"> Null_inequality_has_matching_clr_and_default_ef_semantics</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    await</span><span style="color:#F97583"> using</span><span style="color:#F97583"> var</span><span style="color:#B392F0"> database</span><span style="color:#F97583"> =</span><span style="color:#F97583"> await</span><span style="color:#E1E4E8"> ExampleDatabase.</span><span style="color:#B392F0">CreateAsync</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> repository</span><span style="color:#F97583"> =</span><span style="color:#F97583"> new</span><span style="color:#B392F0"> EntityFrameworkRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;(database.Context);</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> rule</span><span style="color:#F97583"> =</span><span style="color:#B392F0"> CustomerReferenceIsNot</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="blockedReference:" aria-hidden="true"></span><span style="color:#9ECBFF">"BLOCKED"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> inMemoryIds</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> database.VisibleSeedOrders</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">Where</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="predicate:" aria-hidden="true"></span><span style="color:#E1E4E8">rule.Matches)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">Select</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="selector:" aria-hidden="true"></span><span style="color:#B392F0">order</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> order.Id)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">ToArray</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> databaseIds</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">await</span><span style="color:#E1E4E8"> repository.</span><span style="color:#B392F0">ListAsync</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="specification:" aria-hidden="true"></span><span style="color:#E1E4E8">rule))</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">Select</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="selector:" aria-hidden="true"></span><span style="color:#B392F0">order</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> order.Id)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">ToArray</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">(inMemoryIds, databaseIds);</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Contains</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">, databaseIds); </span><span style="color:#6A737D">// null != "BLOCKED" under compensated semantics</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">DoesNotContain</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">4</span><span style="color:#E1E4E8">, databaseIds);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>Enabling relational null semantics deliberately changes that result. Read
+<a href="https://learn.microsoft.com/en-us/ef/core/querying/null-comparisons">EF Core query null semantics</a>
+before changing the option, and test the exact predicates your application
+depends on.</p>
+<h2 id="strings-belong-to-the-database-collation">Strings belong to the database collation</h2>
+<p>Case and accent behavior comes from the column or database collation. EF does
+not translate <code>string.Equals</code> overloads that take <code>StringComparison</code>, because
+it cannot infer an appropriate collation. Calling <code>ToLower</code> to force equality
+can also prevent index use. See <a href="https://learn.microsoft.com/en-us/ef/core/miscellaneous/collations-and-case-sensitivity">collations and case sensitivity</a>.</p>
+<p>Tests should state the provider-specific result rather than naming it as a
+universal string rule.</p>
+<h2 id="navigations-do-not-imply-include">Navigations do not imply Include</h2>
+<p>Guard optional navigations explicitly when the rule must behave safely in
+memory. SQL translation may null-propagate an unsafe-looking navigation access,
+which can otherwise create a difference between CLR and database behavior.</p>
+<p>A navigation predicate filters; it does not request eager loading. The example
+verifies that the related customer is not populated merely because the rule
+mentioned it, and that list materialization is no-tracking.</p>
+<h2 id="global-filters-still-apply">Global filters still apply</h2>
+<p><code>Always&lt;T&gt;()</code> means the specification adds no restriction. It does not bypass
+tenant, soft-delete, or other EF model filters. Repositories should never rely
+on a specification to neutralize those safety boundaries.</p>
+<h2 id="provider-limits-are-real">Provider limits are real</h2>
+<p>SQLite is a useful relational test provider, but it has scalar limitations. In
+particular, ordering and comparison for types including <code>DateTimeOffset</code>,
+<code>decimal</code>, and <code>TimeSpan</code> can be unsupported. See the official <a href="https://learn.microsoft.com/en-us/ef/core/providers/sqlite/limitations">SQLite provider
+limitations</a>.</p>
+<p>The adapter turns the demonstrated <code>DateTimeOffset</code> comparison failure into a
+structured translation error:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> async</span><span style="color:#B392F0"> Task</span><span style="color:#B392F0"> Provider_specific_scalar_limit_is_a_structured_translation_error</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    await</span><span style="color:#F97583"> using</span><span style="color:#F97583"> var</span><span style="color:#B392F0"> database</span><span style="color:#F97583"> =</span><span style="color:#F97583"> await</span><span style="color:#E1E4E8"> ExampleDatabase.</span><span style="color:#B392F0">CreateAsync</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> repository</span><span style="color:#F97583"> =</span><span style="color:#F97583"> new</span><span style="color:#B392F0"> EntityFrameworkRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;(database.Context);</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> rule</span><span style="color:#F97583"> =</span><span style="color:#B392F0"> ProviderTimestampBefore</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="cutoff:" aria-hidden="true"></span><span style="color:#E1E4E8">DateTimeOffset.UtcNow);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> exception</span><span style="color:#F97583"> =</span><span style="color:#F97583"> await</span><span style="color:#E1E4E8"> Assert.</span><span style="color:#B392F0">ThrowsAsync</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">SpecificationTranslationException</span><span style="color:#E1E4E8">&gt;(() </span><span style="color:#F97583">=&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">        repository.</span><span style="color:#B392F0">ListAsync</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="specification:" aria-hidden="true"></span><span style="color:#E1E4E8">rule));</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> error</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> Assert.</span><span style="color:#B392F0">Single</span><span style="color:#E1E4E8">(exception.Errors);</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"order.provider-timestamp-before"</span><span style="color:#E1E4E8">, error.RuleId);</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"$"</span><span style="color:#E1E4E8">, error.NodePath);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<h2 id="what-the-sqlite-suite-does-not-prove">What the SQLite suite does not prove</h2>
+<p>SQLite in-memory exercises a real relational translator and database. It does
+not establish SQL Server, PostgreSQL, or production-schema conformance. EF’s
+InMemory provider is used here only to prove that the relational adapter rejects
+a non-relational context—not to validate query semantics.</p>
+<p>Microsoft recommends testing important queries against the actual production
+database and discourages the InMemory provider as a query fake. See <a href="https://learn.microsoft.com/en-us/ef/core/testing/choosing-a-testing-strategy">choosing a
+testing strategy</a>
+and the <a href="https://learn.microsoft.com/en-us/ef/core/providers/">provider matrix</a>.</p>
+</div><nav class="doc-pagination" aria-label="Adjacent documentation"><a href="/docs/repositories/"><span>Previous</span><strong>Repository extension</strong></a><a class="next" href="/docs/testing/"><span>Next</span><strong>Testing the behavior</strong></a></nav></article><aside class="page-toc" aria-label="On this page"><p class="sidebar-label">On this page</p><ol><li><a href="#use-the-ef-implementation">Use the EF implementation</a></li><li><a href="#translation-is-checked-before-execution">Translation is checked before execution</a></li><li><a href="#in-memory-success-is-not-translation-proof">In-memory success is not translation proof</a></li><li><a href="#null-semantics-can-diverge">Null semantics can diverge</a></li><li><a href="#strings-belong-to-the-database-collation">Strings belong to the database collation</a></li><li><a href="#navigations-do-not-imply-include">Navigations do not imply Include</a></li><li><a href="#global-filters-still-apply">Global filters still apply</a></li><li><a href="#provider-limits-are-real">Provider limits are real</a></li><li><a href="#what-the-sqlite-suite-does-not-prove">What the SQLite suite does not prove</a></li></ol></aside></div></main><footer class="site-footer"><div class="site-shell footer-inner"><p>Business rules should sound like the business.</p><p>Designed by Dan Marshall.</p></div></footer></body></html>

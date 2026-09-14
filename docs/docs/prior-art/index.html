@@ -1,0 +1,54 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#f7f5ef"><title>Prior art and design lineage · Fluent Specifications</title><meta name="description" content="See the libraries and policy systems that shaped Fluent Specifications, including the internal Kotlin API that established its terse syntax."><link rel="canonical" href="https://fluent-specifications.danmarshall.dev/docs/prior-art/"><meta property="og:type" content="website"><meta property="og:site_name" content="Fluent Specifications"><meta property="og:title" content="Prior art and design lineage · Fluent Specifications"><meta property="og:description" content="See the libraries and policy systems that shaped Fluent Specifications, including the internal Kotlin API that established its terse syntax."><meta property="og:url" content="https://fluent-specifications.danmarshall.dev/docs/prior-art/"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Prior art and design lineage · Fluent Specifications"><meta name="twitter:description" content="See the libraries and policy systems that shaped Fluent Specifications, including the internal Kotlin API that established its terse syntax."><link rel="stylesheet" href="/_astro/BaseLayout.BOzojXuf.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><header class="site-header"><div class="site-shell header-inner"><a class="brand" href="/" aria-label="Fluent Specifications home"><span class="brand-mark" aria-hidden="true">fs</span><span>Fluent Specifications</span></a><nav class="primary-nav" aria-label="Primary navigation"><a class="active" href="/docs/getting-started/">Docs</a><a href="/docs/ef-core/">EF Core</a><a href="/docs/testing/">Tests</a><a href="https://github.com/DanMarshall909/fluent-specifications">GitHub</a></nav></div></header><main id="main-content"><div class="site-shell docs-grid"><aside class="docs-sidebar" aria-label="Documentation navigation"><p class="sidebar-label">Documentation</p><nav><ol><li><a href="/docs/getting-started/">Getting started</a></li><li><a href="/docs/defining-rules/">Defining rules</a></li><li><a href="/docs/composition/">Composition</a></li><li><a href="/docs/diagnostics/">Diagnostics</a></li><li><a href="/docs/repositories/">Repository extension</a></li><li><a href="/docs/ef-core/">Entity Framework Core</a></li><li><a href="/docs/testing/">Testing the behavior</a></li><li><a href="/docs/reference/">Reference and boundaries</a></li><li><a class="active" aria-current="page" href="/docs/prior-art/">Prior art and design lineage</a></li></ol></nav></aside><article class="doc-article"><header class="doc-header"><p class="eyebrow">Reference</p><h1>Prior art and design lineage</h1><p class="doc-lead">See the libraries and policy systems that shaped Fluent Specifications, including the internal Kotlin API that established its terse syntax.</p></header><div class="prose"><p>Fluent Specifications is an original implementation, but not an isolated idea.
+It draws on a long line of specification, rule, validation, and policy systems.
+These projects are <strong>influences, not compatibility targets</strong>.</p>
+<h2 id="the-closest-ergonomic-influence">The closest ergonomic influence</h2>
+<p>The strongest call-site influence is an internal Kotlin specification library
+used at Reapit. Its fluent, discoverable chains showed that composed rules could
+read naturally without making every operation look like a function call. That
+implementation is not public, so there is no repository to link; this library
+reinterprets the experience for C# rather than reproducing its source or API.</p>
+<p>That lineage is most visible in three choices:</p>
+<ul>
+<li>zero-argument rules compose without parentheses;</li>
+<li>parentheses remain available for grouping and parameterized rules; and</li>
+<li>named domain rules are preferred over clever Boolean operator overloads.</li>
+</ul>
+<h2 id="specification-libraries">Specification libraries</h2>
+<ul>
+<li><a href="https://github.com/ardalis/Specification">Ardalis.Specification</a> demonstrates
+a mature C# specification ecosystem and a disciplined repository boundary.
+Fluent Specifications narrows its core to Boolean rules and deliberately does
+not make query shaping part of the domain object.</li>
+<li><a href="https://docs.spring.io/spring-data/jpa/reference/jpa/specifications.html">Spring Data JPA Specifications</a>
+demonstrates composable predicates backed by a persistence provider. It is a
+useful precedent for algebraic composition, while this library keeps provider
+APIs behind infrastructure.</li>
+<li><a href="https://github.com/miholler/NSpecifications">NSpecifications</a> explores terse,
+readable C# specification composition. Its ergonomics informed the search for
+a compact call site without requiring Boolean operator overloads.</li>
+<li><a href="https://github.com/K-Phoen/rulerz">RulerZ</a> separates a rule from the mechanism
+that evaluates it against different targets. That separation influenced the
+closed rule tree and provider-facing traversal contracts here.</li>
+<li><a href="https://github.com/thiagodp/spec-pattern">spec-pattern for TypeScript</a> and
+<a href="https://github.com/Happyr/Doctrine-Specification">Happyr Doctrine Specification</a>
+show how the same pattern changes when adapted to different language and data
+access conventions.</li>
+</ul>
+<h2 id="dsl-and-policy-influences">DSL and policy influences</h2>
+<ul>
+<li><a href="https://github.com/konform-kt/konform">Konform</a> is a Kotlin validation DSL
+whose readable nesting and language-native feel reinforced the value of
+discoverable fluent syntax.</li>
+<li><a href="https://github.com/cedar-policy/cedar">Cedar</a> and
+<a href="https://github.com/open-policy-agent/opa">Open Policy Agent</a> demonstrate the
+value of explicit policy structure, predictable evaluation, and useful
+diagnostics. Fluent Specifications borrows those qualities, not their policy
+languages or authorization models.</li>
+</ul>
+<h2 id="where-this-implementation-draws-its-boundary">Where this implementation draws its boundary</h2>
+<p>The combination is intentional: a small immutable Boolean tree, generated C#
+syntax, structured diagnostics, and provider translation that never exposes
+<code>IQueryable</code> through the domain boundary. For the normative decisions, see the
+<a href="/docs/repositories/">repository guide</a>, <a href="/docs/reference/">reference</a>, and
+<a href="/docs/ef-core/">EF Core guide</a>.</p>
+</div><nav class="doc-pagination" aria-label="Adjacent documentation"><a href="/docs/reference/"><span>Previous</span><strong>Reference and boundaries</strong></a></nav></article><aside class="page-toc" aria-label="On this page"><p class="sidebar-label">On this page</p><ol><li><a href="#the-closest-ergonomic-influence">The closest ergonomic influence</a></li><li><a href="#specification-libraries">Specification libraries</a></li><li><a href="#dsl-and-policy-influences">DSL and policy influences</a></li><li><a href="#where-this-implementation-draws-its-boundary">Where this implementation draws its boundary</a></li></ol></aside></div></main><footer class="site-footer"><div class="site-shell footer-inner"><p>Business rules should sound like the business.</p><p>Designed by Dan Marshall.</p></div></footer></body></html>

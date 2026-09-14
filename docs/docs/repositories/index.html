@@ -1,0 +1,160 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#f7f5ef"><title>Repository extension · Fluent Specifications</title><meta name="description" content="Use the optional provider-neutral read repository contract, choose an EF Core implementation or another provider, and preserve a materialized application boundary."><link rel="canonical" href="https://fluent-specifications.danmarshall.dev/docs/repositories/"><meta property="og:type" content="website"><meta property="og:site_name" content="Fluent Specifications"><meta property="og:title" content="Repository extension · Fluent Specifications"><meta property="og:description" content="Use the optional provider-neutral read repository contract, choose an EF Core implementation or another provider, and preserve a materialized application boundary."><meta property="og:url" content="https://fluent-specifications.danmarshall.dev/docs/repositories/"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Repository extension · Fluent Specifications"><meta name="twitter:description" content="Use the optional provider-neutral read repository contract, choose an EF Core implementation or another provider, and preserve a materialized application boundary."><link rel="stylesheet" href="/_astro/BaseLayout.BOzojXuf.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><header class="site-header"><div class="site-shell header-inner"><a class="brand" href="/" aria-label="Fluent Specifications home"><span class="brand-mark" aria-hidden="true">fs</span><span>Fluent Specifications</span></a><nav class="primary-nav" aria-label="Primary navigation"><a class="active" href="/docs/getting-started/">Docs</a><a href="/docs/ef-core/">EF Core</a><a href="/docs/testing/">Tests</a><a href="https://github.com/DanMarshall909/fluent-specifications">GitHub</a></nav></div></header><main id="main-content"><div class="site-shell docs-grid"><aside class="docs-sidebar" aria-label="Documentation navigation"><p class="sidebar-label">Documentation</p><nav><ol><li><a href="/docs/getting-started/">Getting started</a></li><li><a href="/docs/defining-rules/">Defining rules</a></li><li><a href="/docs/composition/">Composition</a></li><li><a href="/docs/diagnostics/">Diagnostics</a></li><li><a class="active" aria-current="page" href="/docs/repositories/">Repository extension</a></li><li><a href="/docs/ef-core/">Entity Framework Core</a></li><li><a href="/docs/testing/">Testing the behavior</a></li><li><a href="/docs/reference/">Reference and boundaries</a></li><li><a href="/docs/prior-art/">Prior art and design lineage</a></li></ol></nav></aside><article class="doc-article"><header class="doc-header"><p class="eyebrow">Infrastructure</p><h1>Repository extension</h1><p class="doc-lead">Use the optional provider-neutral read repository contract, choose an EF Core implementation or another provider, and preserve a materialized application boundary.</p></header><div class="prose"><p><code>FluentSpecifications.Repositories</code> adds a small generic read boundary around
+specifications and searches. It standardizes the operations that providers have
+in common without making EF Core, <code>DbContext</code>, <code>IQueryable</code>, or another storage
+API part of application code.</p>
+<p>The extension is deliberately read-only. Writes, units of work, transactions,
+includes, projections, and provider options remain application or
+infrastructure concerns.</p>
+<h2 id="availability">Availability</h2>
+<p>The repository contract is published separately from the starter package,
+beginning with the coordinated 1.2.0 package suite:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="shell"><code><span class="line"><span style="color:#B392F0">dotnet</span><span style="color:#9ECBFF"> add</span><span style="color:#9ECBFF"> package</span><span style="color:#9ECBFF"> DanMarshall.FluentSpecifications.Repositories</span><span style="color:#79B8FF"> --version</span><span style="color:#79B8FF"> 1.2.0</span></span></code></pre>
+<p><code>DanMarshall.FluentSpecifications.Repositories</code> depends only on
+<code>DanMarshall.FluentSpecifications</code>; the starter package does not transitively
+include the repository, expression, or EF Core extensions. This keeps a domain
+model that only needs <code>Spec&lt;T&gt;</code> free of persistence abstractions.</p>
+<p>The dependency supplies the core runtime. Add the starter package directly when
+the consuming project also needs its source generator; analyzer assets do not
+flow transitively through an extension package.</p>
+<p>The contract uses the root <code>FluentSpecifications</code> namespace. Contributors
+working inside this repository can use the matching
+<code>FluentSpecifications.Repositories</code> project reference instead of the package.</p>
+<h2 id="use-the-generic-contract-directly-or-specialize-it">Use the generic contract directly or specialize it</h2>
+<p>Application services can depend directly on <code>IReadRepository&lt;Order&gt;</code>. A domain
+can also give that dependency a more specific name while inheriting the same
+read surface:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> interface</span><span style="color:#B392F0"> IOrderRepository</span><span style="color:#E1E4E8"> : </span><span style="color:#B392F0">IReadRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>Use a domain-specific interface when it adds useful domain operations or makes
+an architectural boundary clearer. Do not create one only to copy every generic
+method by hand.</p>
+<p>The generic contract keeps ordinary list operations materialized:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> static</span><span style="color:#B392F0"> Task</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">IReadOnlyList</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;&gt; </span><span style="color:#B392F0">FindReadyOrdersAsync</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">    IReadRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt; </span><span style="color:#B392F0">repository</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">    CancellationToken</span><span style="color:#B392F0"> cancellationToken</span><span style="color:#F97583"> =</span><span style="color:#F97583"> default</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">=&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">    repository.</span><span style="color:#B392F0">ListAsync</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span><span class="parameter-hint" data-parameter-hint="specification:" aria-hidden="true"></span><span style="color:#E1E4E8">CanShip.</span><span style="color:#B392F0">And</span><span style="color:#E1E4E8">(HighPriority.Or.ManualOverride),</span></span>
+<span class="line"><span style="color:#E1E4E8">        cancellationToken);</span></span></code></pre>
+<p>A paged search crosses the same boundary and returns its metadata with the
+results:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> static</span><span style="color:#B392F0"> Task</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Page</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;&gt; </span><span style="color:#B392F0">FindPriorityOrdersAsync</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">    IReadRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt; </span><span style="color:#B392F0">repository</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">    CancellationToken</span><span style="color:#B392F0"> cancellationToken</span><span style="color:#F97583"> =</span><span style="color:#F97583"> default</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">=&gt;</span></span>
+<span class="line"><span style="color:#E1E4E8">    repository.</span><span style="color:#B392F0">PageAsync</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">        </span><span class="parameter-hint" data-parameter-hint="search:" aria-hidden="true"></span><span style="color:#B392F0">PriorityShippingPage</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">        cancellationToken);</span></span></code></pre>
+<p>No application method receives a deferred query or provider expression.</p>
+<h2 id="operations-and-semantics">Operations and semantics</h2>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Input</th>
+<th>Materialized result</th>
+<th>Search shaping</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ListAsync</code></td>
+<td><code>Spec&lt;T&gt;</code></td>
+<td><code>IReadOnlyList&lt;T&gt;</code></td>
+<td>Filter only</td>
+</tr>
+<tr>
+<td><code>ListAsync</code></td>
+<td><code>Search&lt;T&gt;</code></td>
+<td><code>IReadOnlyList&lt;T&gt;</code></td>
+<td>Filter, ordering, and optional paging</td>
+</tr>
+<tr>
+<td><code>PageAsync</code></td>
+<td><code>PagedSearch&lt;T&gt;</code></td>
+<td><code>Page&lt;T&gt;</code></td>
+<td>Filter, ordering, paging, and total count</td>
+</tr>
+<tr>
+<td><code>AnyAsync</code></td>
+<td><code>Spec&lt;T&gt;</code> or <code>Search&lt;T&gt;</code></td>
+<td><code>bool</code></td>
+<td>Filter only</td>
+</tr>
+<tr>
+<td><code>CountAsync</code></td>
+<td><code>Spec&lt;T&gt;</code> or <code>Search&lt;T&gt;</code></td>
+<td><code>int</code></td>
+<td>Filter only</td>
+</tr>
+</tbody>
+</table>
+<p><code>AnyAsync(Search&lt;T&gt;)</code> and <code>CountAsync(Search&lt;T&gt;)</code> use the search specification
+but do not let ordering or paging change the aggregate. <code>PageAsync</code> counts all
+filtered results before applying the requested page and returns that count as
+<code>Page&lt;T&gt;.TotalResults</code>.</p>
+<p>Every operation accepts a <code>CancellationToken</code>. Implementations should observe
+an already-cancelled token before translation or I/O and pass it through to the
+underlying provider.</p>
+<h2 id="ef-core-is-one-implementation">EF Core is one implementation</h2>
+<p>The EF adapter exposes <code>EntityFrameworkRepository&lt;T&gt;</code>, which implements
+<code>IReadRepository&lt;T&gt;</code> for mapped reference types:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> async</span><span style="color:#B392F0"> Task</span><span style="color:#B392F0"> Repository_example_executes_the_same_rule_in_sqlite</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    await</span><span style="color:#F97583"> using</span><span style="color:#F97583"> var</span><span style="color:#B392F0"> database</span><span style="color:#F97583"> =</span><span style="color:#F97583"> await</span><span style="color:#E1E4E8"> ExampleDatabase.</span><span style="color:#B392F0">CreateAsync</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#B392F0">    IReadRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt; </span><span style="color:#B392F0">repository</span><span style="color:#F97583"> =</span></span>
+<span class="line"><span style="color:#F97583">        new</span><span style="color:#B392F0"> EntityFrameworkRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">&gt;(database.Context);</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> ready</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> CanShip.</span><span style="color:#B392F0">And</span><span style="color:#E1E4E8">(HighPriority.Or.ManualOverride).AndNot.Suspended;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> orders</span><span style="color:#F97583"> =</span><span style="color:#F97583"> await</span><span style="color:#E1E4E8"> repository.</span><span style="color:#B392F0">ListAsync</span><span style="color:#E1E4E8">(ready);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">([</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">], orders.</span><span style="color:#B392F0">Select</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">order</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> order.Id).</span><span style="color:#B392F0">Order</span><span style="color:#E1E4E8">().</span><span style="color:#B392F0">ToArray</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>That implementation delegates provider work to the relational executor. It
+preflights translation, keeps global query filters active, materializes with
+no tracking, and rejects unsupported filters or sorts instead of silently
+switching to client evaluation.</p>
+<p>The <code>where T : class</code> constraint belongs to the EF implementation, not the
+generic contract. Read the <a href="/docs/ef-core/">EF Core guide</a> for null semantics,
+collations, navigations, provider limits, and database-level testing.</p>
+<h2 id="implement-another-provider">Implement another provider</h2>
+<p>Any provider can implement <code>IReadRepository&lt;T&gt;</code> without referencing EF Core.
+The contract test suite proves this with an in-memory provider over a value
+type:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="csharp"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">Fact</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#F97583">public</span><span style="color:#F97583"> async</span><span style="color:#B392F0"> Task</span><span style="color:#B392F0"> A_non_ef_provider_can_implement_the_contract_for_value_types</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#B392F0">    IReadRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#F97583">int</span><span style="color:#E1E4E8">&gt; </span><span style="color:#B392F0">repository</span><span style="color:#F97583"> =</span></span>
+<span class="line"><span style="color:#F97583">        new</span><span style="color:#B392F0"> InMemoryReadRepository</span><span style="color:#E1E4E8">&lt;</span><span style="color:#F97583">int</span><span style="color:#E1E4E8">&gt;(</span><span class="parameter-hint" data-parameter-hint="candidates:" aria-hidden="true"></span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">3</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">4</span><span style="color:#E1E4E8">]);</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> even</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> Spec.</span><span style="color:#B392F0">Define</span><span style="color:#E1E4E8">&lt;</span><span style="color:#F97583">int</span><span style="color:#E1E4E8">&gt;(</span><span class="parameter-hint" data-parameter-hint="id:" aria-hidden="true"></span><span style="color:#9ECBFF">"number.even"</span><span style="color:#E1E4E8">, </span><span class="parameter-hint" data-parameter-hint="name:" aria-hidden="true"></span><span style="color:#9ECBFF">"Even"</span><span style="color:#E1E4E8">, </span><span class="parameter-hint" data-parameter-hint="predicate:" aria-hidden="true"></span><span style="color:#B392F0">number</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> number </span><span style="color:#F97583">%</span><span style="color:#79B8FF"> 2</span><span style="color:#F97583"> ==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    var</span><span style="color:#B392F0"> search</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> Search.</span><span style="color:#B392F0">Matching</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="specification:" aria-hidden="true"></span><span style="color:#E1E4E8">even)</span></span>
+<span class="line"><span style="color:#E1E4E8">        .Sorted.By[</span><span class="parameter-hint" data-parameter-hint="field:" aria-hidden="true"></span><span style="color:#E1E4E8">SearchField.</span><span style="color:#B392F0">Define</span><span style="color:#E1E4E8">&lt;</span><span style="color:#F97583">int</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#E1E4E8">&gt;(</span><span class="parameter-hint" data-parameter-hint="name:" aria-hidden="true"></span><span style="color:#9ECBFF">"Value"</span><span style="color:#E1E4E8">, </span><span class="parameter-hint" data-parameter-hint="selector:" aria-hidden="true"></span><span style="color:#B392F0">number</span><span style="color:#F97583"> =&gt;</span><span style="color:#E1E4E8"> number)].Desc</span></span>
+<span class="line"><span style="color:#E1E4E8">        .</span><span style="color:#B392F0">Page</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="number:" aria-hidden="true"></span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">).</span><span style="color:#B392F0">OfSize</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="size:" aria-hidden="true"></span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">([</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">4</span><span style="color:#E1E4E8">], </span><span style="color:#F97583">await</span><span style="color:#E1E4E8"> repository.</span><span style="color:#B392F0">ListAsync</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="specification:" aria-hidden="true"></span><span style="color:#E1E4E8">even));</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">([</span><span style="color:#79B8FF">4</span><span style="color:#E1E4E8">], (</span><span style="color:#F97583">await</span><span style="color:#E1E4E8"> repository.</span><span style="color:#B392F0">PageAsync</span><span style="color:#E1E4E8">(search)).Results);</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">True</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">await</span><span style="color:#E1E4E8"> repository.</span><span style="color:#B392F0">AnyAsync</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="specification:" aria-hidden="true"></span><span style="color:#E1E4E8">even));</span></span>
+<span class="line"><span style="color:#E1E4E8">    Assert.</span><span style="color:#B392F0">Equal</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">await</span><span style="color:#E1E4E8"> repository.</span><span style="color:#B392F0">CountAsync</span><span style="color:#E1E4E8">(</span><span class="parameter-hint" data-parameter-hint="specification:" aria-hidden="true"></span><span style="color:#E1E4E8">even));</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>A database, HTTP API, document store, search service, or test provider should:</p>
+<ul>
+<li>evaluate or translate the complete <code>Spec&lt;T&gt;</code> filter;</li>
+<li>apply search ordering in the declared order;</li>
+<li>apply paging only where the operation requires it;</li>
+<li>return fully materialized results;</li>
+<li>preserve cancellation;</li>
+<li>report unsupported behavior explicitly; and</li>
+<li>keep connection, query, and provider configuration behind the implementation.</li>
+</ul>
+<p>An implementation must not expose <code>IQueryable</code>, fetch an unbounded data set as
+an implicit fallback, or silently discard a rule or sort that it cannot execute.</p>
+<h2 id="keep-writes-domain-specific">Keep writes domain-specific</h2>
+<p><code>IReadRepository&lt;T&gt;</code> does not prescribe <code>Add</code>, <code>Update</code>, <code>Delete</code>, <code>Save</code>, or a
+unit of work. A domain repository can inherit the read contract and add the
+commands that its aggregate actually supports, or it can keep command handlers
+separate. Either choice is preferable to pretending every data source has the
+same generic mutation semantics.</p>
+<p>The <a href="/docs/testing/">testing guide</a> covers repository conformance evidence. The
+<a href="/docs/reference/">reference</a> summarizes package ownership and the broader
+non-goals.</p>
+</div><nav class="doc-pagination" aria-label="Adjacent documentation"><a href="/docs/diagnostics/"><span>Previous</span><strong>Diagnostics</strong></a><a class="next" href="/docs/ef-core/"><span>Next</span><strong>Entity Framework Core</strong></a></nav></article><aside class="page-toc" aria-label="On this page"><p class="sidebar-label">On this page</p><ol><li><a href="#availability">Availability</a></li><li><a href="#use-the-generic-contract-directly-or-specialize-it">Use the generic contract directly or specialize it</a></li><li><a href="#operations-and-semantics">Operations and semantics</a></li><li><a href="#ef-core-is-one-implementation">EF Core is one implementation</a></li><li><a href="#implement-another-provider">Implement another provider</a></li><li><a href="#keep-writes-domain-specific">Keep writes domain-specific</a></li></ol></aside></div></main><footer class="site-footer"><div class="site-shell footer-inner"><p>Business rules should sound like the business.</p><p>Designed by Dan Marshall.</p></div></footer></body></html>
