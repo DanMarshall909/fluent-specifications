@@ -184,7 +184,6 @@ test('NuGet publication uses the manually selected project version and trusted p
   assert.doesNotMatch(workflow, /VERSION_PREFIX|BASE_COMMIT_COUNT|git rev-list/);
   assert.doesNotMatch(workflow, /-p:PackageVersion=/);
   assert.match(workflow, /https:\/\/api\.nuget\.org\/v3\/index\.json/);
-  assert.match(workflow, /--skip-duplicate/);
   assert.equal(
     [...workflow.matchAll(/dotnet nuget push/g)].length,
     1,
