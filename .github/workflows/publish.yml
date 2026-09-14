@@ -8,14 +8,15 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: fluent-spec-pages
+  group: fluent-spec-pages-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  verify-and-deploy:
+  verify:
+    name: verify-and-deploy
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -70,8 +71,33 @@ jobs:
       - name: Build and test documentation site
         run: npm test
 
+      - name: Retain the verified documentation site
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluentSpecifications-docs-${{ github.run_id }}
+          path: docs
+          include-hidden-files: true
+          if-no-files-found: error
+
+  deploy:
+    needs: verify
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download the verified documentation site
+        uses: actions/download-artifact@v4
+        with:
+          name: FluentSpecifications-docs-${{ github.run_id }}
+          path: docs
+
       - name: Publish under gh-pages:/docs
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

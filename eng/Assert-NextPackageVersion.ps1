@@ -11,8 +11,6 @@ param(
     [ValidateNotNullOrEmpty()]
     [string] $FirstStableVersion = '1.0.0',
 
-    [switch] $AllowAlreadyPublished,
-
     [string] $PublishedVersionsJson,
 
     [ValidateNotNullOrEmpty()]
@@ -86,11 +84,6 @@ else {
 }
 
 if ($publishedVersions -contains $CandidateVersion) {
-    if ($AllowAlreadyPublished) {
-        Write-Output "$PackageId $CandidateVersion is already published; accepting the idempotent retry."
-        exit 0
-    }
-
     throw "$PackageId $CandidateVersion has already been published."
 }
 
