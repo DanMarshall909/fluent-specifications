@@ -211,17 +211,25 @@ test('consolidated dependency updates remain coordinated and grouped', () => {
   const dependabot = read('.github/dependabot.yml');
 
   assert.equal(testSdk.length, 9, 'every test project should use the shared test SDK version');
-  assert.deepEqual([...new Set(testSdk.map(({ version }) => version))], ['18.9.0']);
-  assert.deepEqual(
-    [...efInMemory, ...efSqlite, ...efRelational].map(({ version }) => version),
-    ['10.0.11', '10.0.11', '10.0.11'],
+  assert.equal(efInMemory.length, 1);
+  assert.equal(efSqlite.length, 1);
+  assert.equal(efRelational.length, 1);
+  assert.equal(roslyn.length, 3);
+  assert.equal(new Set(testSdk.map(({ version }) => version)).size, 1);
+  assert.equal(
+    new Set([...efInMemory, ...efSqlite, ...efRelational].map(({ version }) => version)).size,
+    1,
   );
-  assert.deepEqual([...new Set(roslyn.map(({ version }) => version))], ['5.3.0']);
-  assert.equal(packageManifest.dependencies.astro, '7.3.1');
-  assert.equal(packageManifest.devDependencies.esbuild, '0.28.2');
-  assert.equal(packageManifest.overrides.esbuild, '0.28.2');
-  assert.equal(packageLock.packages['node_modules/astro'].version, '7.3.1');
-  assert.equal(packageLock.packages['node_modules/esbuild'].version, '0.28.2');
+  assert.equal(new Set(roslyn.map(({ version }) => version)).size, 1);
+  assert.equal(packageManifest.overrides.esbuild, packageManifest.devDependencies.esbuild);
+  assert.equal(
+    packageLock.packages['node_modules/astro'].version,
+    packageManifest.dependencies.astro,
+  );
+  assert.equal(
+    packageLock.packages['node_modules/esbuild'].version,
+    packageManifest.devDependencies.esbuild,
+  );
   assert.match(dependabot, /groups:\s*\n\s+site-dependencies:/);
   assert.match(dependabot, /groups:\s*\n\s+test-tooling:/);
   assert.match(dependabot, /\n\s+ef-core:\s*\n\s+patterns:/);
