@@ -17,6 +17,8 @@ jobs:
     if: vars.NUGET_PUBLISH_ENABLED == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: nuget.org
+    env:
+      RELEASE_VERSION: ${{ inputs.release_version }}
     permissions:
       contents: read
       id-token: write
@@ -45,8 +47,8 @@ jobs:
             echo "::error::The Core project PackageVersion '$version' is not a stable semantic version."
             exit 1
           fi
-          if [[ "$version" != "${{ inputs.release_version }}" ]]; then
-            echo "::error::Requested release '${{ inputs.release_version }}' does not match project version '$version'."
+          if [[ "$version" != "$RELEASE_VERSION" ]]; then
+            echo "::error::Requested release '$RELEASE_VERSION' does not match project version '$version'."
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -55,10 +57,10 @@ jobs:
         shell: pwsh
         run: |
           $version = '${{ steps.package-version.outputs.version }}'
-          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications' -CandidateVersion $version -AllowAlreadyPublished
-          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications.Repositories' -CandidateVersion $version -FirstStableVersion $version -AllowAlreadyPublished
-          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications.Expressions' -CandidateVersion $version -FirstStableVersion $version -AllowAlreadyPublished
-          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications.EntityFrameworkCore' -CandidateVersion $version -FirstStableVersion $version -AllowAlreadyPublished
+          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications' -CandidateVersion $version
+          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications.Repositories' -CandidateVersion $version -FirstStableVersion $version
+          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications.Expressions' -CandidateVersion $version -FirstStableVersion $version
+          ./eng/Assert-NextPackageVersion.ps1 -PackageId 'DanMarshall.FluentSpecifications.EntityFrameworkCore' -CandidateVersion $version -FirstStableVersion $version
 
       - name: Pack package suite ${{ steps.package-version.outputs.version }}
         shell: pwsh
@@ -80,5 +82,5 @@ jobs:
             DanMarshall.FluentSpecifications.Expressions \
             DanMarshall.FluentSpecifications.EntityFrameworkCore
           do
-            dotnet nuget push "artifacts/packages/${package_id}.${version}.nupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+            dotnet nuget push "artifacts/packages/${package_id}.${version}.nupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json
           done

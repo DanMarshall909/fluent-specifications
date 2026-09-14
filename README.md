@@ -214,8 +214,10 @@ NuGet publication is a manual workflow with an explicit requested version. The
 publisher checks every package ID against NuGet.org before packing or requesting
 credentials. Existing package lines accept only the immediate next patch,
 minor, or major SemVer transition; a new extension may begin at the current
-coordinated suite version. Idempotent retries are permitted because a
-multi-package release can be interrupted after publishing only some artifacts.
+coordinated suite version. Each workflow run fails closed if any selected
+package version is already published. Recovering an interrupted multi-package
+release requires separately reviewed, immutable artifacts rather than rebuilding
+packages under an existing version.
 The checked-in [SPECIFICATION.md](SPECIFICATION.md), isolated package-consumer
 tests, and executable conformance suites define the contract.
 
