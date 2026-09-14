@@ -22,6 +22,25 @@ function read(relativePath) {
   return readFileSync(join(root, relativePath), 'utf8');
 }
 
+function packageVersions(packageId) {
+  const projectPaths = execFileSync('git', ['ls-files', '*.csproj'], {
+    cwd: root,
+    encoding: 'utf8',
+  }).trim().split(/\r?\n/).filter(Boolean);
+  const escapedPackageId = packageId.replaceAll('.', '\\.');
+  const packageReference = new RegExp(
+    `<PackageReference\\s+Include="${escapedPackageId}"\\s+Version="([^"]+)"`,
+    'g',
+  );
+
+  return projectPaths.flatMap((projectPath) =>
+    [...read(projectPath).matchAll(packageReference)].map((match) => ({
+      projectPath,
+      version: match[1],
+    })),
+  );
+}
+
 test('the documentation is authored as a complete Markdown collection', () => {
   for (const page of requiredPages) {
     const markdown = readFileSync(join(contentRoot, page), 'utf8');
@@ -195,6 +214,42 @@ test('NuGet publication uses the manually selected project version and trusted p
   assert.match(readme, /manual workflow/);
   assert.match(readme, /Trusted Publishing/);
   assert.match(readme, /short-lived OIDC/);
+});
+
+test('consolidated dependency updates remain coordinated and grouped', () => {
+  const testSdk = packageVersions('Microsoft.NET.Test.Sdk');
+  const efInMemory = packageVersions('Microsoft.EntityFrameworkCore.InMemory');
+  const efSqlite = packageVersions('Microsoft.EntityFrameworkCore.Sqlite');
+  const efRelational = packageVersions('Microsoft.EntityFrameworkCore.Relational');
+  const roslyn = packageVersions('Microsoft.CodeAnalysis.CSharp');
+  const packageManifest = JSON.parse(read('package.json'));
+  const packageLock = JSON.parse(read('package-lock.json'));
+  const dependabot = read('.github/dependabot.yml');
+
+  assert.equal(testSdk.length, 9, 'every test project should use the shared test SDK version');
+  assert.equal(efInMemory.length, 1);
+  assert.equal(efSqlite.length, 1);
+  assert.equal(efRelational.length, 1);
+  assert.equal(roslyn.length, 3);
+  assert.equal(new Set(testSdk.map(({ version }) => version)).size, 1);
+  assert.equal(
+    new Set([...efInMemory, ...efSqlite, ...efRelational].map(({ version }) => version)).size,
+    1,
+  );
+  assert.equal(new Set(roslyn.map(({ version }) => version)).size, 1);
+  assert.equal(packageManifest.overrides.esbuild, packageManifest.devDependencies.esbuild);
+  assert.equal(
+    packageLock.packages['node_modules/astro'].version,
+    packageManifest.dependencies.astro,
+  );
+  assert.equal(
+    packageLock.packages['node_modules/esbuild'].version,
+    packageManifest.devDependencies.esbuild,
+  );
+  assert.match(dependabot, /groups:\s*\n\s+site-dependencies:/);
+  assert.match(dependabot, /groups:\s*\n\s+test-tooling:/);
+  assert.match(dependabot, /\n\s+ef-core:\s*\n\s+patterns:/);
+  assert.match(dependabot, /\n\s+roslyn:\s*\n\s+patterns:/);
 });
 
 test('NuGet publication treats workflow input as data and fails closed on duplicate versions', () => {

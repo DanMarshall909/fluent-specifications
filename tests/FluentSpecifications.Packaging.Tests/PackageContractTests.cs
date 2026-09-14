@@ -100,7 +100,7 @@ public sealed class PackageContractTests
                     "DanMarshall.",
                     StringComparison.Ordinal)
                     ? PackageVersion
-                    : "10.0.0";
+                    : "10.0.11";
                 Assert.Equal(expectedVersion, dependencies[dependency]);
             }
         }
